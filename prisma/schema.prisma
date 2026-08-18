@@ -1,0 +1,153 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+}
+
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  passwordHash     String
+  name             String
+  role             Role      @default(CUSTOMER)
+  isActive         Boolean   @default(true)
+  resetToken       String?   @unique
+  resetTokenExpiry DateTime?
+  refreshTokenHash String?
+  cart             Cart?
+  orders           Order[]
+  reviews          Review[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([email])
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String
+  slug      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id          String     @id @default(uuid())
+  slug        String     @unique
+  name        String
+  description String
+  price       Decimal    @db.Decimal(10, 2)
+  stock       Int        @default(0)
+  rating      Float      @default(0)
+  tag         String?
+  imageUrl    String?
+  isActive    Boolean    @default(true)
+  categoryId  String?
+  category    Category?  @relation(fields: [categoryId], references: [id])
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+  reviews     Review[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([rating(sort: Desc)])
+  @@index([name])
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id])
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int      @default(1)
+
+  @@unique([cartId, productId])
+}
+
+model Order {
+  id            String        @id @default(uuid())
+  orderNumber   String        @unique
+  userId        String?
+  user          User?         @relation(fields: [userId], references: [id])
+  status        OrderStatus   @default(PENDING)
+  paymentStatus PaymentStatus @default(UNPAID)
+  subtotal      Decimal       @db.Decimal(10, 2)
+  deliveryFee   Decimal       @db.Decimal(10, 2)
+  total         Decimal       @db.Decimal(10, 2)
+  name          String
+  email         String
+  phone         String
+  city          String
+  address       String
+  items         OrderItem[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@index([orderNumber])
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product?  @relation(fields: [productId], references: [id])
+  name      String
+  unitPrice Decimal  @db.Decimal(10, 2)
+  quantity  Int
+  lineTotal Decimal  @db.Decimal(10, 2)
+
+  @@index([orderId])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  rating    Int      @db.SmallInt
+  comment   String?
+
+  @@unique([userId, productId])
+  @@index([productId])
+}

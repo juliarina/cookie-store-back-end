@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.pnp.cjs
+
+# Build output
+dist/
+build/
+out/
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Environment
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Prisma
+prisma/migrations/dev.db*
+prisma/*.db
+*.db
+*.db-journal
+
+# Tests / coverage
+coverage/
+.nyc_output/
+coverage.*
+*.lcov
+
+# Cache
+.cache/
+.temp/
+.tmp/
+*.tscache
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+
+# Misc
+.circleci/
+.history/
+
+# Project docs (kept local only)
+AGENTS.md
+issue.md
