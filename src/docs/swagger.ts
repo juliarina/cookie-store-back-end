@@ -177,13 +177,22 @@ const spec = swaggerJsdoc({
         Error: {
           type: 'object',
           properties: {
-            success: { type: 'boolean', enum: [false] },
+            success: { type: 'boolean', enum: [false], example: false },
             error: {
               type: 'object',
               properties: {
-                code: { type: 'string' },
-                message: { type: 'string' },
-                details: { type: 'array', items: { type: 'string' } },
+                code: { type: 'string', example: 'VALIDATION_ERROR' },
+                message: { type: 'string', example: 'Invalid request body' },
+                details: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      field: { type: 'string', example: 'email' },
+                      message: { type: 'string', example: 'Invalid email' },
+                    },
+                  },
+                },
               },
             },
           },
