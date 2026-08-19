@@ -10,6 +10,8 @@ import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './lib/logger.js';
 import { apiRouter } from './modules/index.js';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './docs/swagger.js';
 
 export const app = express();
 
@@ -37,6 +39,15 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/v1', apiRouter);
+
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: 'Crumb & Co. — API Docs',
+    swaggerOptions: { persistAuthorization: true },
+  })
+);
 
 app.use(notFound);
 app.use(errorHandler);

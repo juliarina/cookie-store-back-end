@@ -53,6 +53,8 @@ E-commerce backend for the "Crumb & Co." cookie shop (frontend: `online-shop-vib
 
 Health check: `GET http://localhost:4000/health`
 
+Interactive API docs (Swagger UI): `GET http://localhost:4000/api-docs`
+
 ## Scripts
 
 | Script | Description |
