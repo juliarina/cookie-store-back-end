@@ -1,0 +1,1084 @@
+{
+  "info": {
+    "name": "Crumb & Co. — Backend API",
+    "description": "Complete Postman collection for the Crumb & Co. e-commerce backend (Express v5 + Prisma).\n\n## Setup\n1. Start the server: `npm run dev` (defaults to http://localhost:4000).\n2. Seed the database: `npm run db:seed` (creates the admin `admin@crumbco.dev` / `Admin123!`, categories and products).\n3. Import the environment `crumb-and-co.environment.json` and select it.\n\n## How to run\n- Run the whole collection in order (Auth → Me → Users → Categories → Products → Cart → Orders → Cleanup).\n- Tokens are captured automatically: Login requests store the JWT in the collection variable `accessToken` / `adminAccessToken`, which every protected request reads.\n- Refresh tokens are httpOnly cookies handled automatically by Postman's cookie jar.\n- Re-running is mostly idempotent: create requests tolerate 409 (already exists). If an earlier create 409s, later requests reuse the seeded category/product captured from the list endpoints.\n\n## Auth model\n- Register/login → access JWT (Bearer). Refresh token delivered via httpOnly cookie on `/api/v1/auth`.\n- Admin endpoints require the seeded admin (or any user promoted via PATCH /users/:id/role).\n- Mock payment provider auto-marks orders PAID.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "adminAccessToken", "value": "", "type": "string" },
+    { "key": "customerUserId", "value": "", "type": "string" },
+    { "key": "managedUserId", "value": "", "type": "string" },
+    { "key": "categoryId", "value": "", "type": "string" },
+    { "key": "productId", "value": "", "type": "string" },
+    { "key": "createdProductId", "value": "", "type": "string" },
+    { "key": "orderId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Register, login, refresh, logout. Tokens are saved to collection variables for downstream requests.",
+      "item": [
+        {
+          "name": "Register Customer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{customerPassword}}\",\n  \"name\": \"Jane Doe\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 on first run (409 if email already registered)', () => pm.expect([201, 409]).to.include(pm.response.code));",
+                  "if (pm.response.code === 201) {",
+                  "  pm.test('returns created user', () => pm.expect(pm.response.json().data.email).to.be.a('string'));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register Managed User",
+          "description": "Second account used by the admin-management tests in the Users folder.",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"managed@example.com\",\n  \"password\": \"Managed1!\",\n  \"name\": \"Managed User\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 on first run (409 if already registered)', () => pm.expect([201, 409]).to.include(pm.response.code));",
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('managedUserId', pm.response.json().data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Customer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{customerPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('success is true', () => pm.expect(json.success).to.eql(true));",
+                  "pm.test('returns accessToken', () => pm.expect(json.data.accessToken).to.be.a('string'));",
+                  "pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                  "pm.collectionVariables.set('customerUserId', json.data.user.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Admin",
+          "description": "Uses the seeded admin (see `npm run db:seed`).",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('returns accessToken', () => pm.expect(json.data.accessToken).to.be.a('string'));",
+                  "pm.collectionVariables.set('adminAccessToken', json.data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh",
+          "description": "Reads the httpOnly `refreshToken` cookie automatically. Rotates the session and returns a fresh access token.",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/auth/refresh"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('rotates accessToken', () => pm.expect(json.data.accessToken).to.be.a('string'));",
+                  "pm.collectionVariables.set('accessToken', json.data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));",
+                  "pm.collectionVariables.set('accessToken', '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register — invalid payload (400)",
+          "description": "Shows the real validation error shape: `details` is an array of {field, message}.",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"not-an-email\",\n  \"password\": \"short\",\n  \"name\": \"\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "const json = pm.response.json();",
+                  "pm.test('code is VALIDATION_ERROR', () => pm.expect(json.error.code).to.eql('VALIDATION_ERROR'));",
+                  "pm.test('details is an array of {field, message}', () => {",
+                  "  pm.expect(json.error.details).to.be.an('array');",
+                  "  pm.expect(json.error.details[0]).to.have.property('field');",
+                  "  pm.expect(json.error.details[0]).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Me",
+      "description": "Current authenticated user (customer token).",
+      "item": [
+        {
+          "name": "Get Me",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('returns current user', () => pm.expect(json.data).to.have.property('email'));",
+                  "pm.test('email matches logged-in user', () => pm.expect(json.data.email).to.eql(pm.environment.get('customerEmail')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Me",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/me",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Q. Doe\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('name updated', () => pm.expect(pm.response.json().data.name).to.eql('Jane Q. Doe'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users (Admin)",
+      "description": "Admin-only user management.",
+      "item": [
+        {
+          "name": "List Users",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/users?page=1&limit=10"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('data is an array', () => pm.expect(json.data).to.be.an('array'));",
+                  "pm.test('has pagination meta', () => pm.expect(json.meta.pagination).to.exist);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update User Role / Active",
+          "description": "Demonstrates role + isActive management on the managed user.",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/users/{{managedUserId}}/role",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\",\n  \"isActive\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('role updated', () => pm.expect(json.data.role).to.eql('ADMIN'));",
+                  "pm.test('isActive updated', () => pm.expect(json.data.isActive).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "description": "Categories are public to read; creation is admin-only.",
+      "item": [
+        {
+          "name": "List Categories",
+          "description": "Also captures the first category id so product creation works even if Create Category 409s on re-run.",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/categories"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('data is an array', () => pm.expect(json.data).to.be.an('array'));",
+                  "if (json.data && json.data.length > 0) {",
+                  "  pm.collectionVariables.set('categoryId', json.data[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Category",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/categories",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Seasonal\",\n  \"slug\": \"seasonal\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 on first run (409 if slug exists)', () => pm.expect([201, 409]).to.include(pm.response.code));",
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('categoryId', pm.response.json().data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "description": "Products are public to read; writes are admin-only.",
+      "item": [
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/products?page=1&limit=10&sort=newest"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('data is an array', () => pm.expect(json.data).to.be.an('array'));",
+                  "pm.test('has pagination meta', () => pm.expect(json.meta.pagination).to.exist);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Product by Slug",
+          "description": "Uses a seeded product and captures its id for the cart/checkout flow.",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/products/classic-chocolate-chip"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('returns product', () => pm.expect(pm.response.json().data.slug).to.eql('classic-chocolate-chip'));",
+                  "pm.collectionVariables.set('productId', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Product",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/products",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Chai Spice Cookie\",\n  \"slug\": \"chai-spice-cookie\",\n  \"description\": \"Warm chai spices in a chewy butter cookie.\",\n  \"price\": 4.25,\n  \"stock\": 50,\n  \"rating\": 4.8,\n  \"tag\": \"New\",\n  \"imageUrl\": \"https://example.com/chai.jpg\",\n  \"categoryId\": \"{{categoryId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 on first run (409 if slug exists)', () => pm.expect([201, 409]).to.include(pm.response.code));",
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('createdProductId', pm.response.json().data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Product",
+          "description": "Updates the product created above (requires `createdProductId`).",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/products/{{createdProductId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 4.75,\n  \"stock\": 40\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('price updated', () => pm.expect(Number(json.data.price)).to.eql(4.75));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cart",
+      "description": "Per-user cart. The last request re-adds an item so the cart-based checkout in the Orders folder has stock to buy.",
+      "item": [
+        {
+          "name": "Get Cart",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/cart"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('returns cart with totals', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.data).to.have.property('items');",
+                  "  pm.expect(json.data).to.have.property('total');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Item to Cart",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/cart/items",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 2\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('quantity saved', () => pm.expect(pm.response.json().data.quantity).to.eql(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Cart Item",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/cart/items/{{productId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 5\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('quantity updated', () => pm.expect(pm.response.json().data.quantity).to.eql(5));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove Cart Item",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/cart/items/{{productId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Item (re-add for cart checkout)",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/cart/items",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 2\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "description": "Checkout (guest and cart-based), listing, single order, admin status updates. Mock payment auto-pays, so orders are created as PAID.",
+      "item": [
+        {
+          "name": "Checkout (guest)",
+          "description": "Guest checkout sends explicit items.",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Guest Shopper\",\n  \"email\": \"guest@example.com\",\n  \"phone\": \"+15551234567\",\n  \"city\": \"Springfield\",\n  \"address\": \"742 Evergreen Terrace\",\n  \"items\": [\n    { \"productId\": \"{{productId}}\", \"quantity\": 1 }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.test('order created', () => pm.expect(json.data).to.have.property('orderNumber'));",
+                  "pm.test('mock payment marks order PAID', () => pm.expect(json.data.paymentStatus).to.eql('PAID'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Checkout (cart)",
+          "description": "Authenticated checkout without `items` uses the user's cart and clears it after.",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Q. Doe\",\n  \"email\": \"{{customerEmail}}\",\n  \"phone\": \"+15551234567\",\n  \"city\": \"Springfield\",\n  \"address\": \"742 Evergreen Terrace\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.test('order created from cart', () => pm.expect(json.data).to.have.property('orderNumber'));",
+                  "pm.collectionVariables.set('orderId', json.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List My Orders",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/orders?limit=10"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('data is an array', () => pm.expect(json.data).to.be.an('array'));",
+                  "pm.test('has nextCursor meta', () => pm.expect(json.meta).to.have.property('nextCursor'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Order by ID",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/orders/{{orderId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('returns requested order', () => pm.expect(pm.response.json().data.id).to.eql(pm.collectionVariables.get('orderId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Order Status",
+          "description": "Admin moves the paid order from PAID → PROCESSING.",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/orders/{{orderId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PROCESSING\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('status updated', () => pm.expect(pm.response.json().data.status).to.eql('PROCESSING'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cleanup",
+      "description": "Deletes the product created during this run (soft delete).",
+      "item": [
+        {
+          "name": "Delete Product",
+          "description": "Soft deletes `createdProductId` (sets isActive=false). Kept last so the cart/order flows still have stock.",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/products/{{createdProductId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Negative Tests",
+      "description": "Failure scenarios: auth failures, validation errors, 404s, insufficient stock, duplicate conflicts, and invalid order transitions. Runs after the happy paths so it can reuse captured ids and tokens.",
+      "item": [
+        {
+          "name": "Login — wrong password (401)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"wrong-password\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('success is false', () => pm.expect(pm.response.json().success).to.eql(false));",
+                  "pm.test('code is UNAUTHORIZED', () => pm.expect(pm.response.json().error.code).to.eql('UNAUTHORIZED'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Me — no token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('success is false', () => pm.expect(pm.response.json().success).to.eql(false));",
+                  "pm.test('code is UNAUTHORIZED', () => pm.expect(pm.response.json().error.code).to.eql('UNAUTHORIZED'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Users — customer token (403)",
+          "description": "Customer token hitting an admin-only route.",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/users"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('success is false', () => pm.expect(pm.response.json().success).to.eql(false));",
+                  "pm.test('code is FORBIDDEN', () => pm.expect(pm.response.json().error.code).to.eql('FORBIDDEN'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Product — not found (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/products/this-product-does-not-exist"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('success is false', () => pm.expect(pm.response.json().success).to.eql(false));",
+                  "pm.test('code is NOT_FOUND', () => pm.expect(pm.response.json().error.code).to.eql('NOT_FOUND'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Category — duplicate slug (409)",
+          "description": "Re-creating the 'seasonal' slug already created in the happy path.",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/categories",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Seasonal\",\n  \"slug\": \"seasonal\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('success is false', () => pm.expect(pm.response.json().success).to.eql(false));",
+                  "pm.test('code is CONFLICT', () => pm.expect(pm.response.json().error.code).to.eql('CONFLICT'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Cart Item — invalid product id (400)",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/cart/items",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"not-a-uuid\",\n  \"quantity\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('code is VALIDATION_ERROR', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));",
+                  "pm.test('details describe the field error', () => {",
+                  "  const details = pm.response.json().error.details;",
+                  "  pm.expect(details).to.be.an('array');",
+                  "  pm.expect(details[0]).to.have.property('field');",
+                  "  pm.expect(details[0]).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Cart Item — insufficient stock (409)",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/cart/items",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 9999\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('success is false', () => pm.expect(pm.response.json().success).to.eql(false));",
+                  "pm.test('code is INSUFFICIENT_STOCK', () => pm.expect(pm.response.json().error.code).to.eql('INSUFFICIENT_STOCK'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Checkout — empty items (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Guest Shopper\",\n  \"email\": \"guest@example.com\",\n  \"phone\": \"+15551234567\",\n  \"city\": \"Springfield\",\n  \"address\": \"742 Evergreen Terrace\",\n  \"items\": []\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('success is false', () => pm.expect(pm.response.json().success).to.eql(false));",
+                  "pm.test('code is VALIDATION_ERROR', () => pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Order Status — invalid transition (409)",
+          "description": "Tries to move the paid order back to PENDING, which is not a valid transition from PAID or PROCESSING.",
+          "auth": {
+            "type": "bearer",
+            "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }]
+          },
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/orders/{{orderId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PENDING\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('success is false', () => pm.expect(pm.response.json().success).to.eql(false));",
+                  "pm.test('code is CONFLICT', () => pm.expect(pm.response.json().error.code).to.eql('CONFLICT'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
