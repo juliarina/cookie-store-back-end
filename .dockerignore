@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+.env
+.env.*
+!.env.example
+tests
+.git
+.gitignore
+AGENTS.md
+issue.md
+code-guide.md
+learning-roadmap.md
+*.log
