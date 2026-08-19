@@ -4,6 +4,7 @@ import { sendSuccess } from '../../utils/ApiResponse.js';
 import { env } from '../../config/env.js';
 import { REFRESH_COOKIE, REFRESH_COOKIE_MAX_AGE_MS } from '../../config/constants.js';
 import * as authService from './auth.service.js';
+import type { LoginInput, RegisterInput, UpdateMeInput } from './auth.validation.js';
 
 const setRefreshCookie = (res: Response, token: string): void => {
   res.cookie(REFRESH_COOKIE, token, {
@@ -20,12 +21,12 @@ const clearRefreshCookie = (res: Response): void => {
 };
 
 export const registerController = asyncHandler(async (req: Request, res: Response) => {
-  const user = await authService.register(req.body);
+  const user = await authService.register(req.validatedBody as RegisterInput);
   sendSuccess(res, { status: 201, data: user });
 });
 
 export const loginController = asyncHandler(async (req: Request, res: Response) => {
-  const { user, accessToken, refreshToken } = await authService.login(req.body);
+  const { user, accessToken, refreshToken } = await authService.login(req.validatedBody as LoginInput);
   setRefreshCookie(res, refreshToken);
   sendSuccess(res, { data: { user, accessToken } });
 });
@@ -50,6 +51,6 @@ export const getMeController = asyncHandler(async (req: Request, res: Response) 
 });
 
 export const updateMeController = asyncHandler(async (req: Request, res: Response) => {
-  const user = await authService.updateMe(req.user!.id, req.body);
+  const user = await authService.updateMe(req.user!.id, req.validatedBody as UpdateMeInput);
   sendSuccess(res, { data: user });
 });

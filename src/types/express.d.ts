@@ -8,6 +8,9 @@ declare global {
         id: string;
         role: Role;
       };
+      validatedBody?: unknown;
+      validatedQuery?: unknown;
+      validatedParams?: unknown;
     }
   }
 }
