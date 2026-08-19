@@ -177,19 +177,19 @@ const spec = swaggerJsdoc({
         Error: {
           type: 'object',
           properties: {
-            success: { type: 'boolean', enum: [false], example: false },
+            success: { type: 'boolean', enum: [false] },
             error: {
               type: 'object',
               properties: {
-                code: { type: 'string', example: 'VALIDATION_ERROR' },
-                message: { type: 'string', example: 'Invalid request body' },
+                code: { type: 'string' },
+                message: { type: 'string' },
                 details: {
                   type: 'array',
                   items: {
                     type: 'object',
                     properties: {
-                      field: { type: 'string', example: 'email' },
-                      message: { type: 'string', example: 'Invalid email' },
+                      field: { type: 'string' },
+                      message: { type: 'string' },
                     },
                   },
                 },
@@ -200,73 +200,108 @@ const spec = swaggerJsdoc({
       },
       responses: {
         ValidationError: {
-        description: 'Invalid request payload',
-        content: {
-          'application/json': {
-            schema: { $ref: '#/components/schemas/Error' },
-          },
-        },
-      },
-      Unauthorized: {
-        description: 'Missing or invalid access token',
-        content: {
-          'application/json': {
-            schema: { $ref: '#/components/schemas/Error' },
-          },
-        },
-      },
-      Forbidden: {
-        description: 'Authenticated but not allowed',
-        content: {
-          'application/json': {
-            schema: { $ref: '#/components/schemas/Error' },
-          },
-        },
-      },
-      NotFound: {
-        description: 'Resource not found',
-        content: {
-          'application/json': {
-            schema: { $ref: '#/components/schemas/Error' },
-          },
-        },
-      },
-      Conflict: {
-        description: 'Resource already exists or conflicts',
-        content: {
-          'application/json': {
-            schema: { $ref: '#/components/schemas/Error' },
-          },
-        },
-      },
-      InsufficientStock: {
-        description: 'Requested quantity exceeds available stock',
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              properties: {
-                success: { type: 'boolean', enum: [false] },
+          description: 'Invalid request payload',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Error' },
+              example: {
+                success: false,
                 error: {
-                  type: 'object',
-                  properties: {
-                    code: { type: 'string', enum: ['INSUFFICIENT_STOCK'] },
-                    message: { type: 'string' },
-                  },
+                  code: 'VALIDATION_ERROR',
+                  message: 'Invalid request body',
+                  details: [
+                    { field: 'email', message: 'Invalid email address' },
+                    { field: 'password', message: 'Password must be at least 8 characters' },
+                  ],
                 },
               },
             },
           },
         },
-      },
-      RateLimited: {
-        description: 'Too many requests',
-        content: {
-          'application/json': {
-            schema: { $ref: '#/components/schemas/Error' },
+        Unauthorized: {
+          description: 'Missing or invalid access token',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Error' },
+              example: {
+                success: false,
+                error: { code: 'UNAUTHORIZED', message: 'Missing bearer token' },
+              },
+            },
           },
         },
-      },
+        Forbidden: {
+          description: 'Authenticated but not allowed',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Error' },
+              example: {
+                success: false,
+                error: { code: 'FORBIDDEN', message: 'You do not have permission to perform this action' },
+              },
+            },
+          },
+        },
+        NotFound: {
+          description: 'Resource not found',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Error' },
+              example: {
+                success: false,
+                error: { code: 'NOT_FOUND', message: 'Resource not found' },
+              },
+            },
+          },
+        },
+        Conflict: {
+          description: 'Resource already exists or conflicts',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Error' },
+              example: {
+                success: false,
+                error: { code: 'CONFLICT', message: 'Resource already exists' },
+              },
+            },
+          },
+        },
+        InsufficientStock: {
+          description: 'Requested quantity exceeds available stock',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', enum: [false] },
+                  error: {
+                    type: 'object',
+                    properties: {
+                      code: { type: 'string', enum: ['INSUFFICIENT_STOCK'] },
+                      message: { type: 'string' },
+                    },
+                  },
+                },
+              },
+              example: {
+                success: false,
+                error: { code: 'INSUFFICIENT_STOCK', message: 'Insufficient stock for "Classic Chocolate Chip"' },
+              },
+            },
+          },
+        },
+        RateLimited: {
+          description: 'Too many requests',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Error' },
+              example: {
+                success: false,
+                error: { code: 'RATE_LIMITED', message: 'Too many requests, please try again later' },
+              },
+            },
+          },
+        },
       },
     },
     tags: [
