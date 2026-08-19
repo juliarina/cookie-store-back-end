@@ -189,18 +189,8 @@ const spec = swaggerJsdoc({
           },
         },
       },
-    },
-    tags: [
-      { name: 'Auth', description: 'Register, login, refresh & logout' },
-      { name: 'Me', description: 'Current user profile' },
-      { name: 'Users', description: 'Admin user management' },
-      { name: 'Categories', description: 'Product categories' },
-      { name: 'Products', description: 'Product catalog' },
-      { name: 'Cart', description: 'Per-user shopping cart' },
-      { name: 'Orders', description: 'Checkout & order management' },
-    ],
-    responses: {
-      ValidationError: {
+      responses: {
+        ValidationError: {
         description: 'Invalid request payload',
         content: {
           'application/json': {
@@ -268,7 +258,17 @@ const spec = swaggerJsdoc({
           },
         },
       },
+      },
     },
+    tags: [
+      { name: 'Auth', description: 'Register, login, refresh & logout' },
+      { name: 'Me', description: 'Current user profile' },
+      { name: 'Users', description: 'Admin user management' },
+      { name: 'Categories', description: 'Product categories' },
+      { name: 'Products', description: 'Product catalog' },
+      { name: 'Cart', description: 'Per-user shopping cart' },
+      { name: 'Orders', description: 'Checkout & order management' },
+    ],
   },
   apis: findRoutesFiles(modulesDir),
 });
