@@ -15,6 +15,13 @@ const slugify = (name: string): string =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
+const toNumber = <T>(value: T): T => {
+  if (value && typeof value === 'object' && 'price' in value) {
+    return { ...value, price: Number((value as { price: { toNumber: () => number } }).price) };
+  }
+  return value;
+};
+
 const SORT_ORDERS: Record<NonNullable<ListProductsQuery['sort']>, Prisma.ProductOrderByWithRelationInput> = {
   price: { price: 'asc' },
   '-price': { price: 'desc' },
@@ -71,7 +78,7 @@ export const listProducts = async (query: ListProductsQuery) => {
     prisma.product.count({ where }),
   ]);
 
-  return { products, pagination: buildPaginationMeta({ page, limit, total }) };
+  return { products: products.map(toNumber), pagination: buildPaginationMeta({ page, limit, total }) };
 };
 
 export const getProductBySlug = async (slug: string) => {
@@ -80,7 +87,7 @@ export const getProductBySlug = async (slug: string) => {
     select: PUBLIC_PRODUCT_SELECT,
   });
   if (!product) throw ApiError.notFound('Product not found');
-  return product;
+  return toNumber(product);
 };
 
 const resolveCategoryId = async (categoryId: string | undefined | null) => {
@@ -105,7 +112,8 @@ export const createProduct = async (input: CreateProductInput) => {
     ...(categoryId ? { category: { connect: { id: categoryId } } } : {}),
   };
 
-  return prisma.product.create({ data });
+  const product = await prisma.product.create({ data });
+  return toNumber(product);
 };
 
 export const updateProduct = async (id: string, input: UpdateProductInput) => {
@@ -126,12 +134,14 @@ export const updateProduct = async (id: string, input: UpdateProductInput) => {
     data.category = categoryId ? { connect: { id: categoryId } } : { disconnect: true };
   }
 
-  return prisma.product.update({ where: { id }, data });
+  const product = await prisma.product.update({ where: { id }, data });
+  return toNumber(product);
 };
 
 export const softDeleteProduct = async (id: string) => {
   const existing = await prisma.product.findUnique({ where: { id } });
   if (!existing) throw ApiError.notFound('Product not found');
 
-  return prisma.product.update({ where: { id }, data: { isActive: false } });
+  const product = await prisma.product.update({ where: { id }, data: { isActive: false } });
+  return toNumber(product);
 };
