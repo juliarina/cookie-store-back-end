@@ -34,9 +34,10 @@ model User {
   name             String
   role             Role      @default(CUSTOMER)
   isActive         Boolean   @default(true)
-  resetToken       String?   @unique
-  resetTokenExpiry DateTime?
-  refreshTokenHash String?
+  resetToken             String?   @unique
+  resetTokenExpiry       DateTime?
+  refreshTokenHash       String?
+  previousRefreshTokenHash String?
   cart             Cart?
   orders           Order[]
   reviews          Review[]

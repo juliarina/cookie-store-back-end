@@ -9,6 +9,7 @@ import { globalLimiter } from './middleware/rateLimit.js';
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './lib/logger.js';
+import { apiRouter } from './modules/index.js';
 
 export const app = express();
 
@@ -34,6 +35,8 @@ app.use(
 app.get('/health', (req, res) => {
   res.json({ success: true, data: { status: 'ok', uptime: process.uptime() } });
 });
+
+app.use('/api/v1', apiRouter);
 
 app.use(notFound);
 app.use(errorHandler);
