@@ -3,8 +3,6 @@ import type { Request } from 'express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
 import { corsMiddleware } from './middleware/cors.js';
 import { requestId } from './middleware/requestId.js';
 import { globalLimiter } from './middleware/rateLimit.js';
@@ -46,19 +44,9 @@ app.use(
   '/api-docs',
   swaggerUi.serve,
   swaggerUi.setup(swaggerSpec, {
-    customSiteTitle: 'Crumb & Co. — API Docs',
-    customCssUrl: '/swagger-theme/theme-feeling-blue.css',
-    swaggerOptions: { persistAuthorization: true },
-  })
+  customSiteTitle: 'Crumb & Co. — API Docs',
+  swaggerOptions: { persistAuthorization: true },
+})
 );
-
-app.use(
-  '/swagger-theme',
-  express.static(
-    join(dirname(fileURLToPath(import.meta.url)), '..', 'node_modules', 'swagger-ui-themes', 'themes', '3.x'),
-    { maxAge: '1d', immutable: true }
-  )
-);
-
 app.use(notFound);
 app.use(errorHandler);
