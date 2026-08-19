@@ -47,3 +47,5 @@ export type TokenType = (typeof TOKEN_TYPE)[keyof typeof TOKEN_TYPE];
 export const REFRESH_COOKIE = 'refreshToken';
 
 export const REFRESH_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+export const DELIVERY_FEE = 5;
