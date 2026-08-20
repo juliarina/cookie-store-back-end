@@ -1,7 +1,7 @@
 {
     "info":  {
                  "name":  "Crumb \u0026 Co. — Backend API",
-                 "description":  "Complete Postman collection for the Crumb \u0026 Co. e-commerce backend (Express v5 + Prisma).\n\n## Setup\n1. Start the server: `npm run dev` (defaults to http://localhost:4000).\n2. Seed the database: `npm run db:seed` (creates the admin `admin@crumbco.dev` / `Admin123!`, products).\n3. Import the environment `crumb-and-co.environment.json` and select it.\n\n## How to run\n- Run the whole collection in order (Auth → Me → Users → Categories → Products → Cart → Orders → Cleanup).\n- Tokens are captured automatically: Login requests store the JWT in the environment variable `accessToken` / `adminAccessToken`, which every protected request reads.\n- Refresh tokens are httpOnly cookies handled automatically by Postman\u0027s cookie jar.\n- Re-running: Register requests require a fresh email (a 409 duplicate will fail the test) — clear the email variables in the environment or use new ones to re-run. Product creation tolerates 409 and reuses the seeded product captured from the list endpoints.\n\n## Auth model\n- Register/login → access JWT (Bearer). Refresh token delivered via httpOnly cookie on `/api/v1/auth`.\n- Admin endpoints require the seeded admin (or any user promoted via PATCH /users/:id/role).\n- Customers can delete their own account via DELETE /me (hard delete; order history is detached and kept). Admin accounts cannot delete themselves.\n- Mock payment provider auto-marks orders PAID.",
+                 "description":  "Complete Postman collection for the Crumb \u0026 Co. e-commerce backend (Express v5 + Prisma).\n\n## Setup\n1. Start the server: `npm run dev` (defaults to http://localhost:4000).\n2. Seed the database: `npm run db:seed` (creates the admin `admin@crumbco.dev` / `Admin123!`, products).\n3. Import the environment `crumb-and-co.environment.json` and select it.\n\n## How to run\n- Run the whole collection in order (Auth → Me → Users → Categories → Products → Cart → Orders → Cleanup).\n- Tokens are captured automatically: Login requests store the JWT in the environment variable `accessToken` / `adminAccessToken`, which every protected request reads.\n- Refresh tokens are httpOnly cookies handled automatically by Postman\u0027s cookie jar.\n- Re-running: Register requests require a fresh email (a 409 duplicate will fail the test) — clear the email variables in the environment or use new ones to re-run. Product creation tolerates 409 and reuses the seeded product captured from the list endpoints.\n\n## Auth model\n- Register/login → access JWT (Bearer). Refresh token delivered via httpOnly cookie on `/api/v1/auth`.\n- Admin endpoints require an ADMIN account. New admins are created by an existing admin via POST /users/register (there is no role-changing endpoint).\n- Customers can delete their own account via DELETE /me (hard delete; order history is detached and kept). Admin accounts cannot delete themselves.\n- Mock payment provider auto-marks orders PAID.",
                  "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
              },
     "variable":  [
@@ -821,8 +821,50 @@
                                                 ]
                                   },
                                   {
-                                      "name":  "Update User Role / Active",
-                                      "description":  "Demonstrates role + isActive management on the managed user.",
+                                      "name":  "Register Admin",
+                                      "description":  "Admin creates another admin account (there is no role-changing endpoint — new admins must be registered). Stores the new admin credentials in `newAdminEmail` / `newAdminPassword`.",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{adminAccessToken}}",
+                                                                         "type":  "text"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/v1/users/register",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"email\": \"{{newAdminEmail}}\",\n  \"password\": \"{{newAdminPassword}}\",\n  \"name\": \"New Admin\"\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               }
+                                                               }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 201\u0027, () =\u003e pm.response.to.have.status(201));",
+                                                                                    "const json = pm.response.json();",
+                                                                                    "pm.test(\u0027success is true\u0027, () =\u003e pm.expect(json.success).to.eql(true));",
+                                                                                    "pm.test(\u0027role is ADMIN\u0027, () =\u003e pm.expect(json.data.role).to.eql(\u0027ADMIN\u0027));"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Toggle User Active",
+                                      "description":  "Activates or deactivates the managed user. Role is never changed here — admins can only toggle isActive, and new admins come from POST /users/register.",
                                       "request":  {
                                                       "method":  "PATCH",
                                                       "header":  [
@@ -836,7 +878,48 @@
                                                                          "type":  "text"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/v1/users/{{managedUserId}}/role",
+                                                      "url":  "{{baseUrl}}/api/v1/users/{{managedUserId}}",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"isActive\": false\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               }
+                                                               }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, () =\u003e pm.response.to.have.status(200));",
+                                                                                    "const json = pm.response.json();",
+                                                                                    "pm.test(\u0027isActive updated\u0027, () =\u003e pm.expect(json.data.isActive).to.eql(false));"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "Change Role — rejected (400)",
+                                      "description":  "Role changes are no longer supported. Sending `role` fails validation, so no customer can be promoted to admin.",
+                                      "request":  {
+                                                      "method":  "PATCH",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{adminAccessToken}}",
+                                                                         "type":  "text"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/v1/users/{{managedUserId}}",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\n  \"role\": \"ADMIN\",\n  \"isActive\": true\n}",
@@ -853,10 +936,8 @@
                                                         "script":  {
                                                                        "type":  "text/javascript",
                                                                        "exec":  [
-                                                                                    "pm.test(\u0027Status 200\u0027, () =\u003e pm.response.to.have.status(200));",
-                                                                                    "const json = pm.response.json();",
-                                                                                    "pm.test(\u0027role updated\u0027, () =\u003e pm.expect(json.data.role).to.eql(\u0027ADMIN\u0027));",
-                                                                                    "pm.test(\u0027isActive updated\u0027, () =\u003e pm.expect(json.data.isActive).to.eql(true));"
+                                                                                    "pm.test(\u0027Status 400\u0027, () =\u003e pm.response.to.have.status(400));",
+                                                                                    "pm.test(\u0027code is VALIDATION_ERROR\u0027, () =\u003e pm.expect(pm.response.json().error.code).to.eql(\u0027VALIDATION_ERROR\u0027));"
                                                                                 ]
                                                                    }
                                                     }

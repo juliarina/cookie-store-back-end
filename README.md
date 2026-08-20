@@ -12,7 +12,7 @@ E-commerce backend for the "Crumb & Co." cookie shop (frontend: `online-shop-vib
 
 ## Features
 
-- **Auth & users** — register, login, refresh-token rotation with reuse detection, logout, `me`, self-service account deletion (`DELETE /me`, customers only), admin user management (list, role/isActive patch)
+- **Auth & users** — register, login, refresh-token rotation with reuse detection, logout, `me`, self-service account deletion (`DELETE /me`, customers only), admin user management (list, register new admins, activate/deactivate)
 - **Catalog** — public product listings with search (pg_trgm), filters, sorting, pagination; admin CRUD with soft delete
 - **Cart** — customer-only per-user cart, stock-aware add/update/remove, totals (subtotal + flat `DELIVERY_FEE`)
 - **Orders** — atomic checkout (transactional stock decrement), guest checkout, cursor-paginated order lists (customers see their own, admins see all, IDOR-protected), admin status transitions with a whitelist
@@ -119,7 +119,8 @@ prisma/
 | PATCH | `/me` | any | Update own profile |
 | DELETE | `/me` | customer | Delete own account (hard delete, detaches order history) |
 | GET | `/users` | admin | List users |
-| PATCH | `/users/:id` | admin | Update role / isActive |
+| POST | `/users/register` | admin | Register a new admin account |
+| PATCH | `/users/:id` | admin | Activate / deactivate user (no role changes) |
 | GET | `/products` | — | List with search/filters/pagination |
 | GET | `/products/:slug` | — | Product detail |
 | POST | `/products` | admin | Create product |
