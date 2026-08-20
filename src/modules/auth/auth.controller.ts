@@ -54,3 +54,9 @@ export const updateMeController = asyncHandler(async (req: Request, res: Respons
   const user = await authService.updateMe(req.user!.id, req.validatedBody as UpdateMeInput);
   sendSuccess(res, { data: user });
 });
+
+export const deleteMeController = asyncHandler(async (req: Request, res: Response) => {
+  await authService.deleteMe(req.user!.id);
+  clearRefreshCookie(res);
+  res.status(204).end();
+});

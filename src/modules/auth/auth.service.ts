@@ -153,6 +153,19 @@ export const getMe = async (userId: string): Promise<SafeUser> => {
   return user;
 };
 
+export const deleteMe = async (userId: string): Promise<void> => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw ApiError.notFound('User not found');
+
+  await prisma.$transaction(async (tx) => {
+    await tx.cartItem.deleteMany({ where: { cart: { userId } } });
+    await tx.cart.deleteMany({ where: { userId } });
+    await tx.review.deleteMany({ where: { userId } });
+    await tx.order.updateMany({ where: { userId }, data: { userId: null } });
+    await tx.user.delete({ where: { id: userId } });
+  });
+};
+
 export const updateMe = async (userId: string, input: UpdateMeInput): Promise<SafeUser> => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw ApiError.notFound('User not found');

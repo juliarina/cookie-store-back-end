@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { authenticate } from '../../middleware/authenticate.js';
+import { authorize } from '../../middleware/authorize.js';
 import { validate } from '../../middleware/validate.js';
 import { authLimiter } from '../../middleware/rateLimit.js';
+import { ROLES } from '../../config/constants.js';
 import {
   loginController,
   logoutController,
@@ -9,7 +11,7 @@ import {
   registerController,
 } from './auth.controller.js';
 import { loginSchema, registerSchema, updateMeSchema } from './auth.validation.js';
-import { getMeController, updateMeController } from './auth.controller.js';
+import { deleteMeController, getMeController, updateMeController } from './auth.controller.js';
 
 export const authRouter = Router();
 
@@ -180,3 +182,23 @@ meRouter.get('/', getMeController);
  *         $ref: '#/components/responses/Conflict'
  */
 meRouter.patch('/', validate({ body: updateMeSchema }), updateMeController);
+
+/**
+ * @openapi
+ * /me:
+ *   delete:
+ *     tags: [Me]
+ *     summary: Delete your own account (customers only)
+ *     description: Hard-deletes the customer account, cart, and reviews; detaches order history (kept with snapshot name/email). Clears the refresh cookie. Admin accounts cannot be deleted via this endpoint.
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       204:
+ *         description: Account deleted
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+meRouter.delete('/', authorize(ROLES.CUSTOMER), deleteMeController);
