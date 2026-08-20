@@ -434,9 +434,7 @@
                                                         "script":  {
                                                                        "type":  "text/javascript",
                                                                        "exec":  [
-                                                                                    "if (pm.cookies \u0026\u0026 pm.cookies.jar \u0026\u0026 pm.cookies.jar().clear) {",
-                                                                                    "  pm.cookies.jar().clear();",
-                                                                                    "}"
+                                                                                    "pm.cookies.jar().clear(pm.environment.get(\u0027baseUrl\u0027) + \u0027/api/v1/auth/refresh\u0027, () =\u003e {});"
                                                                                 ]
                                                                    }
                                                     },
