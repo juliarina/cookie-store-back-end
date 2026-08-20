@@ -1614,11 +1614,11 @@
                  },
                  {
                      "name":  "Orders",
-                     "description":  "Checkout (guest and cart-based), listing, single order, admin status updates. Mock payment auto-pays, so orders are created as PAID.",
+                     "description":  "Checkout from the logged-in customer's cart, listing, single order, admin status updates. Mock payment auto-pays, so orders are created as PAID. Guest checkout is not supported.",
                      "item":  [
-                                  {
-                                      "name":  "Checkout (guest)",
-                                      "description":  "Guest checkout sends explicit items. Saves the guest order id for the 403 negative test.",
+{
+                                      "name":  "Checkout — unauthenticated (401)",
+                                      "description":  "Guest checkout is not supported. Posting to /orders without a token is rejected with 401, even when `items` are provided.",
                                       "request":  {
                                                       "method":  "POST",
                                                       "header":  [
@@ -1644,11 +1644,8 @@
                                                         "script":  {
                                                                        "type":  "text/javascript",
                                                                        "exec":  [
-                                                                                    "pm.test(\u0027Status 201\u0027, () =\u003e pm.response.to.have.status(201));",
-                                                                                    "const json = pm.response.json();",
-                                                                                    "pm.test(\u0027order created\u0027, () =\u003e pm.expect(json.data).to.have.property(\u0027orderNumber\u0027));",
-                                                                                    "pm.test(\u0027mock payment marks order PAID\u0027, () =\u003e pm.expect(json.data.paymentStatus).to.eql(\u0027PAID\u0027));",
-                                                                                    "pm.environment.set(\u0027guestOrderId\u0027, json.data.id);"
+                                                                                    "pm.test(\u0027Status 401\u0027, () =\u003e pm.response.to.have.status(401));",
+                                                                                    "pm.test(\u0027code is UNAUTHORIZED\u0027, () =\u003e pm.expect(pm.response.json().error.code).to.eql(\u0027UNAUTHORIZED\u0027));"
                                                                                 ]
                                                                    }
                                                     }
@@ -1656,7 +1653,7 @@
                                   },
                                   {
                                       "name":  "Checkout (cart)",
-                                      "description":  "Authenticated checkout without `items` uses the user\u0027s cart and clears it after.",
+                                      "description":  "Authenticated checkout from the user's cart (clears it after). Guest checkout is not supported — a token is required.",
                                       "request":  {
                                                       "method":  "POST",
                                                       "header":  [
@@ -1790,27 +1787,33 @@
                                                     }
                                                 ]
                                   },
-                                  {
-                                      "name":  "Checkout — empty items (400)",
+{
+                                      "name":  "Checkout — items rejected (400)",
+                                      "description":  "The checkout schema no longer accepts `items` (guest checkout removed). An authenticated request sending `items` fails validation.",
                                       "request":  {
                                                       "method":  "POST",
                                                       "header":  [
                                                                      {
                                                                          "key":  "Content-Type",
                                                                          "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{accessToken}}",
+                                                                         "type":  "text"
                                                                      }
                                                                  ],
                                                       "url":  "{{baseUrl}}/api/v1/orders",
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"name\": \"Guest Shopper\",\n  \"email\": \"guest@example.com\",\n  \"phone\": \"+15551234567\",\n  \"city\": \"Springfield\",\n  \"address\": \"742 Evergreen Terrace\",\n  \"items\": []\n}",
+                                                                   "raw":  "{\n  \"name\": \"Jane Q. Doe\",\n  \"email\": \"{{customerEmail}}\",\n  \"phone\": \"+15551234567\",\n  \"city\": \"Springfield\",\n  \"address\": \"742 Evergreen Terrace\",\n  \"items\": []\n}",
                                                                    "options":  {
                                                                                    "raw":  {
                                                                                                "language":  "json"
                                                                                            }
                                                                                }
-                                                               }
-                                                  },
+                                                                }
+                                                   },
                                       "event":  [
                                                     {
                                                         "listen":  "test",
@@ -1861,33 +1864,6 @@
                                                                                     "pm.test(\u0027Status 409\u0027, () =\u003e pm.response.to.have.status(409));",
                                                                                     "pm.test(\u0027success is false\u0027, () =\u003e pm.expect(pm.response.json().success).to.eql(false));",
                                                                                     "pm.test(\u0027code is CONFLICT\u0027, () =\u003e pm.expect(pm.response.json().error.code).to.eql(\u0027CONFLICT\u0027));"
-                                                                                ]
-                                                                   }
-                                                    }
-                                                ]
-                                  },
-                                  {
-                                      "name":  "Get Guest Order as Customer (403)",
-                                      "description":  "A customer trying to view an order that belongs to no one (guest) or another user → forbidden.",
-                                      "request":  {
-                                                      "method":  "GET",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Authorization",
-                                                                         "value":  "Bearer {{accessToken}}",
-                                                                         "type":  "text"
-                                                                     }
-                                                                 ],
-                                                      "url":  "{{baseUrl}}/api/v1/orders/{{guestOrderId}}"
-                                                  },
-                                      "event":  [
-                                                    {
-                                                        "listen":  "test",
-                                                        "script":  {
-                                                                       "type":  "text/javascript",
-                                                                       "exec":  [
-                                                                                    "pm.test(\u0027Status 403\u0027, () =\u003e pm.response.to.have.status(403));",
-                                                                                    "pm.test(\u0027code is FORBIDDEN\u0027, () =\u003e pm.expect(pm.response.json().error.code).to.eql(\u0027FORBIDDEN\u0027));"
                                                                                 ]
                                                                    }
                                                     }
@@ -1960,44 +1936,9 @@
                                                     }
                                                 ]
                                   },
-                                  {
-                                      "name":  "Checkout — nonexistent product (400 / NOT_FOUND)",
-                                      "description":  "Checkout with a product that does not exist returns HTTP 400 with code NOT_FOUND.",
-                                      "request":  {
-                                                      "method":  "POST",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Content-Type",
-                                                                         "value":  "application/json"
-                                                                     }
-                                                                 ],
-                                                      "url":  "{{baseUrl}}/api/v1/orders",
-                                                      "body":  {
-                                                                   "mode":  "raw",
-                                                                   "raw":  "{\n  \"name\": \"Guest Shopper\",\n  \"email\": \"guest@example.com\",\n  \"phone\": \"+15551234567\",\n  \"city\": \"Springfield\",\n  \"address\": \"742 Evergreen Terrace\",\n  \"items\": [\n    { \"productId\": \"00000000-0000-4000-8000-000000000000\", \"quantity\": 1 }\n  ]\n}",
-                                                                   "options":  {
-                                                                                   "raw":  {
-                                                                                               "language":  "json"
-                                                                                           }
-                                                                               }
-                                                               }
-                                                  },
-                                      "event":  [
-                                                    {
-                                                        "listen":  "test",
-                                                        "script":  {
-                                                                       "type":  "text/javascript",
-                                                                       "exec":  [
-                                                                                    "pm.test(\u0027Status 400\u0027, () =\u003e pm.response.to.have.status(400));",
-                                                                                    "pm.test(\u0027code is NOT_FOUND\u0027, () =\u003e pm.expect(pm.response.json().error.code).to.eql(\u0027NOT_FOUND\u0027));"
-                                                                                ]
-                                                                   }
-                                                    }
-                                                ]
-                                  },
-                                  {
+{
                                       "name":  "Checkout — empty cart (409)",
-                                      "description":  "Authenticated checkout without items while the cart is empty → conflict. (Cart was cleared by the happy-path checkout.)",
+                                      "description":  "Authenticated checkout while the cart is empty → conflict. (Cart was cleared by the happy-path checkout.)",
                                       "request":  {
                                                       "method":  "POST",
                                                       "header":  [

@@ -15,7 +15,7 @@ E-commerce backend for the "Crumb & Co." cookie shop (frontend: `online-shop-vib
 - **Auth & users** — register, login, refresh-token rotation with reuse detection, logout, `me`, self-service account deletion (`DELETE /me`, customers only), admin user management (list, register new admins, activate/deactivate)
 - **Catalog** — public product listings with search (pg_trgm), filters, sorting, pagination; admin CRUD with soft delete
 - **Cart** — customer-only per-user cart, stock-aware add/update/remove, totals (subtotal + flat `DELIVERY_FEE`)
-- **Orders** — atomic checkout (transactional stock decrement), guest checkout, cursor-paginated order lists (customers see their own, admins see all, IDOR-protected), admin status transitions with a whitelist
+- **Orders** — authenticated checkout from the customer's cart (transactional stock decrement), cursor-paginated order lists (customers see their own, admins see all, IDOR-protected), admin status transitions with a whitelist. Guest checkout is not supported.
 - **Payments** — `PaymentProvider` abstraction; `mock` provider out of the box, `stripe` provider slot ready
 
 ## Quick start
@@ -130,7 +130,7 @@ prisma/
 | POST | `/cart/items` | customer | Add item (stock-aware) |
 | PATCH | `/cart/items/:itemId` | customer | Update quantity |
 | DELETE | `/cart/items/:itemId` | customer | Remove item |
-| POST | `/orders` | any | Checkout (auth user or guest `items`) |
+| POST | `/orders` | customer | Checkout from your cart (must be logged in, no guest checkout) |
 | GET | `/orders` | any | Own (customer) / all (admin), cursor-paginated |
 | GET | `/orders/:id` | any | Order detail (owner or admin) |
 | PATCH | `/orders/:id/status` | admin | Transition order status |

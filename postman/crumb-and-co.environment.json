@@ -85,12 +85,6 @@
       "value": "",
       "type": "default",
       "enabled": true
-    },
-    {
-      "key": "guestOrderId",
-      "value": "",
-      "type": "default",
-      "enabled": true
     }
   ],
   "_postman_variable_scope": "environment",
