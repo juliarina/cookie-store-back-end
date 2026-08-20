@@ -114,7 +114,7 @@
                                                                        "type":  "text/javascript",
                                                                        "exec":  [
                                                                                     "pm.test(\u0027Status 201\u0027, () =\u003e pm.response.to.have.status(201));",
-                                                                                    "pm.environment.set(\u0027managedUserId\u0027, pm.response.json().data.id);"
+                                                                                    "pm.environment.set(\u0027managedUserId\u0027, pm.response.json()?.data?.id);"
                                                                                 ]
                                                                    }
                                                     }
@@ -149,7 +149,7 @@
                                                                        "type":  "text/javascript",
                                                                        "exec":  [
                                                                                     "pm.test(\u0027Status 200\u0027, () =\u003e pm.response.to.have.status(200));",
-                                                                                    "pm.environment.set(\u0027managedUserId\u0027, pm.response.json().data.user.id);"
+                                                                                    "pm.environment.set(\u0027managedUserId\u0027, pm.response.json()?.data?.user?.id);"
                                                                                 ]
                                                                    }
                                                     }
@@ -186,8 +186,8 @@
                                                                                     "const json = pm.response.json();",
                                                                                     "pm.test(\u0027success is true\u0027, () =\u003e pm.expect(json.success).to.eql(true));",
                                                                                     "pm.test(\u0027returns accessToken\u0027, () =\u003e pm.expect(json.data.accessToken).to.be.a(\u0027string\u0027));",
-                                                                                    "pm.environment.set(\u0027accessToken\u0027, json.data.accessToken);",
-                                                                                    "pm.environment.set(\u0027customerUserId\u0027, json.data.user.id);"
+"pm.environment.set(\u0027accessToken\u0027, json?.data?.accessToken);",
+                                                                                     "pm.environment.set(\u0027customerUserId\u0027, json?.data?.user?.id);"
                                                                                 ]
                                                                    }
                                                     }
@@ -224,7 +224,7 @@
                                                                                     "pm.test(\u0027Status 200\u0027, () =\u003e pm.response.to.have.status(200));",
                                                                                     "const json = pm.response.json();",
                                                                                     "pm.test(\u0027returns accessToken\u0027, () =\u003e pm.expect(json.data.accessToken).to.be.a(\u0027string\u0027));",
-                                                                                    "pm.environment.set(\u0027adminAccessToken\u0027, json.data.accessToken);"
+                                                                                    "pm.environment.set(\u0027adminAccessToken\u0027, json?.data?.accessToken);"
                                                                                 ]
                                                                    }
                                                     }
@@ -249,14 +249,14 @@
                                                                                     "pm.test(\u0027Status 200\u0027, () =\u003e pm.response.to.have.status(200));",
                                                                                     "const json = pm.response.json();",
                                                                                     "pm.test(\u0027rotates accessToken\u0027, () =\u003e pm.expect(json.data.accessToken).to.be.a(\u0027string\u0027));",
-                                                                                    "pm.environment.set(\u0027accessToken\u0027, json.data.accessToken);"
+"pm.environment.set(\u0027accessToken\u0027, json?.data?.accessToken);"
                                                                                 ]
                                                                    }
                                                     }
                                                 ]
                                   },
-                                  {
-                                      "name":  "Logout",
+                                   {
+                                       "name":  "Logout",
                                       "request":  {
                                                       "method":  "POST",
                                                       "header":  [
@@ -308,8 +308,8 @@
                                                                                     "const json = pm.response.json();",
                                                                                     "pm.test(\u0027success is true\u0027, () =\u003e pm.expect(json.success).to.eql(true));",
                                                                                     "pm.test(\u0027returns accessToken\u0027, () =\u003e pm.expect(json.data.accessToken).to.be.a(\u0027string\u0027));",
-                                                                                    "pm.environment.set(\u0027accessToken\u0027, json.data.accessToken);",
-                                                                                    "pm.environment.set(\u0027customerUserId\u0027, json.data.user.id);"
+"pm.environment.set(\u0027accessToken\u0027, json?.data?.accessToken);",
+                                                                                     "pm.environment.set(\u0027customerUserId\u0027, json?.data?.user?.id);"
                                                                                 ]
                                                                    }
                                                     }
@@ -1044,7 +1044,7 @@
                                                                        "exec":  [
                                                                                     "pm.test(\u0027Status 200\u0027, () =\u003e pm.response.to.have.status(200));",
                                                                                     "pm.test(\u0027returns product\u0027, () =\u003e pm.expect(pm.response.json().data.slug).to.eql(\u0027classic-chocolate-chip\u0027));",
-                                                                                    "pm.environment.set(\u0027productId\u0027, pm.response.json().data.id);"
+                                                                                    "pm.environment.set(\u0027productId\u0027, pm.response.json()?.data?.id);"
                                                                                 ]
                                                                    }
                                                     }
@@ -1084,7 +1084,7 @@
                                                                        "exec":  [
                                                                                     "pm.test(\u0027201 on first run (409 if slug exists)\u0027, () =\u003e pm.expect([201, 409]).to.include(pm.response.code));",
                                                                                     "if (pm.response.code === 201) {",
-                                                                                    "  pm.environment.set(\u0027createdProductId\u0027, pm.response.json().data.id);",
+                                                                                    "  pm.environment.set(\u0027createdProductId\u0027, pm.response.json()?.data?.id);",
                                                                                     "}"
                                                                                 ]
                                                                    }
@@ -1685,7 +1685,7 @@
                                                                                     "pm.test(\u0027Status 201\u0027, () =\u003e pm.response.to.have.status(201));",
                                                                                     "const json = pm.response.json();",
                                                                                     "pm.test(\u0027order created from cart\u0027, () =\u003e pm.expect(json.data).to.have.property(\u0027orderNumber\u0027));",
-                                                                                    "pm.environment.set(\u0027orderId\u0027, json.data.id);"
+                                                                                    "pm.environment.set(\u0027orderId\u0027, json?.data?.id);"
                                                                                 ]
                                                                    }
                                                     }
