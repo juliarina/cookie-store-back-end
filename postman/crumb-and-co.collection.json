@@ -1032,7 +1032,7 @@
                  },
                  {
                      "name":  "Cart",
-                     "description":  "Per-user cart. The last request re-adds an item so the cart-based checkout in the Orders folder has stock to buy.",
+                     "description":  "Customer-only cart. Admin tokens get 403 on every cart endpoint. The last request re-adds an item so the cart-based checkout in the Orders folder has stock to buy.",
                      "item":  [
                                   {
                                       "name":  "Get Cart",
@@ -1393,6 +1393,48 @@
                                                                                     "pm.test(\u0027code is NOT_FOUND\u0027, () =\u003e pm.expect(pm.response.json().error.code).to.eql(\u0027NOT_FOUND\u0027));"
                                                                                 ]
                                                                    }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "description":  "Cart routes are customer-only. An admin token must get 403 on all cart endpoints.",
+                                      "name":  "Add Cart Item - admin forbidden (403)",
+                                      "request":  {
+                                                      "body":  {
+                                                                   "raw":  "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 1\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               },
+                                                      "method":  "POST",
+                                                      "url":  "{{baseUrl}}/api/v1/cart/items",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "type":  "text",
+                                                                         "value":  "Bearer {{adminAccessToken}}"
+                                                                     }
+                                                                 ]
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 403\u0027, () =\u003e pm.response.to.have.status(403));",
+                                                                                    "pm.test(\u0027success is false\u0027, () =\u003e pm.expect(pm.response.json().success).to.eql(false));",
+                                                                                    "pm.test(\u0027code is FORBIDDEN\u0027, () =\u003e pm.expect(pm.response.json().error.code).to.eql(\u0027FORBIDDEN\u0027));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
                                                     }
                                                 ]
                                   }
