@@ -58,14 +58,29 @@ describe('orders', () => {
       expect(cart.body.data.items).toEqual([]);
     });
 
-    it('supports guest checkout without a session', async () => {
+    it('rejects guest checkout without a session (401)', async () => {
       const { product } = await auth();
       const res = await request(app).post(`${base}/orders`).send({
         ...checkoutPayload('guest@example.com'),
         items: [{ productId: product.id, quantity: 1 }],
       });
-      expect(res.status).toBe(201);
-      expect(res.body.data.userId).toBeNull();
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('UNAUTHORIZED');
+    });
+
+    it('rejects a checkout payload with items (400)', async () => {
+      const { email, token, product } = await auth();
+      await request(app)
+        .post(`${base}/cart/items`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ productId: product.id, quantity: 1 });
+
+      const res = await request(app)
+        .post(`${base}/orders`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...checkoutPayload(email), items: [{ productId: product.id, quantity: 1 }] });
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
     });
 
     it('rejects empty cart with 409', async () => {
