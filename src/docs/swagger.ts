@@ -285,7 +285,7 @@ const spec = swaggerJsdoc({
     },
     tags: [
       { name: 'Auth', description: 'Register, login, refresh & logout' },
-      { name: 'Me', description: 'Current user profile' },
+      { name: 'Me', description: 'Current user profile & self-service account deletion' },
       { name: 'Users', description: 'Admin user management' },
       { name: 'Products', description: 'Product catalog' },
       { name: 'Cart', description: 'Customer-only shopping cart' },
