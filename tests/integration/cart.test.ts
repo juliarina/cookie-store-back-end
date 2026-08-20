@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { app } from '../../src/app.js';
-import { createCustomer } from '../helpers.js';
+import { ADMIN_EMAIL, ADMIN_PASSWORD, createCustomer } from '../helpers.js';
 
 const base = '/api/v1';
 
@@ -12,6 +12,11 @@ const authed = async () => {
     token: login.body.data.accessToken as string,
     product: (await request(app).get(`${base}/products`).query({ limit: 1 })).body.data[0],
   };
+};
+
+const adminToken = async () => {
+  const login = await request(app).post(`${base}/auth/login`).send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+  return login.body.data.accessToken as string;
 };
 
 describe('cart', () => {
@@ -29,6 +34,11 @@ describe('cart', () => {
     it('rejects unauthenticated access', async () => {
       const res = await request(app).get(`${base}/cart`);
       expect(res.status).toBe(401);
+    });
+
+    it('rejects admins with 403', async () => {
+      const res = await request(app).get(`${base}/cart`).set('Authorization', `Bearer ${await adminToken()}`);
+      expect(res.status).toBe(403);
     });
   });
 
@@ -68,6 +78,15 @@ describe('cart', () => {
         .send({ productId: '00000000-0000-0000-0000-000000000000', quantity: 1 });
       expect(res.status).toBe(404);
     });
+
+    it('rejects admins with 403', async () => {
+      const { product } = await authed();
+      const res = await request(app)
+        .post(`${base}/cart/items`)
+        .set('Authorization', `Bearer ${await adminToken()}`)
+        .send({ productId: product.id, quantity: 1 });
+      expect(res.status).toBe(403);
+    });
   });
 
   describe('PATCH /cart/items/:productId', () => {
@@ -84,6 +103,15 @@ describe('cart', () => {
         .send({ quantity: 4 });
       expect(res.status).toBe(200);
       expect(res.body.data.quantity).toBe(4);
+    });
+
+    it('rejects admins with 403', async () => {
+      const { product } = await authed();
+      const res = await request(app)
+        .patch(`${base}/cart/items/${product.id}`)
+        .set('Authorization', `Bearer ${await adminToken()}`)
+        .send({ quantity: 2 });
+      expect(res.status).toBe(403);
     });
   });
 
@@ -110,6 +138,14 @@ describe('cart', () => {
         .delete(`${base}/cart/items/${product.id}`)
         .set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(404);
+    });
+
+    it('rejects admins with 403', async () => {
+      const { product } = await authed();
+      const res = await request(app)
+        .delete(`${base}/cart/items/${product.id}`)
+        .set('Authorization', `Bearer ${await adminToken()}`);
+      expect(res.status).toBe(403);
     });
   });
 });
