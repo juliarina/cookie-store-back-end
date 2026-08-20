@@ -134,6 +134,61 @@ describe('auth', () => {
     });
   });
 
+  describe('DELETE /me', () => {
+    it('deletes the customer account, cart, and reviews; detaches orders', async () => {
+      const { email, password } = await createCustomer();
+      const login = await request(app).post(`${base}/auth/login`).send({ email, password });
+      const token = login.body.data.accessToken;
+
+      const product = (await request(app).get(`${base}/products`).query({ limit: 1 })).body.data[0];
+      await request(app)
+        .post(`${base}/cart/items`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ productId: product.id, quantity: 2 });
+
+      const res = await request(app).delete(`${base}/me`).set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(204);
+
+      const deleted = await prisma.user.findUnique({ where: { email } });
+      expect(deleted).toBeNull();
+      const carts = await prisma.cart.findMany({ where: { user: { email } } });
+      expect(carts).toEqual([]);
+      const reviews = await prisma.review.findMany({ where: { user: { email } } });
+      expect(reviews).toEqual([]);
+    });
+
+    it('allows re-registering with the same email after deletion', async () => {
+      const { email, password } = await createCustomer();
+      const login = await request(app).post(`${base}/auth/login`).send({ email, password });
+
+      await request(app)
+        .delete(`${base}/me`)
+        .set('Authorization', `Bearer ${login.body.data.accessToken}`)
+        .expect(204);
+
+      const register = await request(app)
+        .post(`${base}/auth/register`)
+        .send({ email, password: 'Passw0rd!', name: 'Back Again' });
+      expect(register.status).toBe(201);
+      expect(register.body.data.email).toBe(email);
+    });
+
+    it('rejects admins with 403', async () => {
+      const adminLogin = await request(app)
+        .post(`${base}/auth/login`)
+        .send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+      const res = await request(app)
+        .delete(`${base}/me`)
+        .set('Authorization', `Bearer ${adminLogin.body.data.accessToken}`);
+      expect(res.status).toBe(403);
+    });
+
+    it('rejects unauthenticated access with 401', async () => {
+      const res = await request(app).delete(`${base}/me`);
+      expect(res.status).toBe(401);
+    });
+  });
+
   describe('users admin endpoints', () => {
     it('lists users for admin only', async () => {
       await createCustomer();
