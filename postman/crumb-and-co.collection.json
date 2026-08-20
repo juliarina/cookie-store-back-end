@@ -1,7 +1,7 @@
 {
     "info":  {
                  "name":  "Crumb \u0026 Co. — Backend API",
-                 "description":  "Complete Postman collection for the Crumb \u0026 Co. e-commerce backend (Express v5 + Prisma).\n\n## Setup\n1. Start the server: `npm run dev` (defaults to http://localhost:4000).\n2. Seed the database: `npm run db:seed` (creates the admin `admin@crumbco.dev` / `Admin123!`, products).\n3. Import the environment `crumb-and-co.environment.json` and select it.\n\n## How to run\n- Run the whole collection in order (Auth â†’ Me â†’ Users â†’ Categories â†’ Products â†’ Cart â†’ Orders â†’ Cleanup).\n- Tokens are captured automatically: Login requests store the JWT in the environment variable `accessToken` / `adminAccessToken`, which every protected request reads.\n- Refresh tokens are httpOnly cookies handled automatically by Postman\u0027s cookie jar.\n- Re-running is mostly idempotent: create requests tolerate 409 (already exists). If an earlier create 409s, later requests reuse the seeded product captured from the list endpoints.\n\n## Auth model\n- Register/login â†’ access JWT (Bearer). Refresh token delivered via httpOnly cookie on `/api/v1/auth`.\n- Admin endpoints require the seeded admin (or any user promoted via PATCH /users/:id/role).\n- Mock payment provider auto-marks orders PAID.",
+                 "description":  "Complete Postman collection for the Crumb \u0026 Co. e-commerce backend (Express v5 + Prisma).\n\n## Setup\n1. Start the server: `npm run dev` (defaults to http://localhost:4000).\n2. Seed the database: `npm run db:seed` (creates the admin `admin@crumbco.dev` / `Admin123!`, products).\n3. Import the environment `crumb-and-co.environment.json` and select it.\n\n## How to run\n- Run the whole collection in order (Auth → Me → Users → Categories → Products → Cart → Orders → Cleanup).\n- Tokens are captured automatically: Login requests store the JWT in the environment variable `accessToken` / `adminAccessToken`, which every protected request reads.\n- Refresh tokens are httpOnly cookies handled automatically by Postman\u0027s cookie jar.\n- Re-running: Register requests require a fresh email (a 409 duplicate will fail the test) — clear the email variables in the environment or use new ones to re-run. Product creation tolerates 409 and reuses the seeded product captured from the list endpoints.\n\n## Auth model\n- Register/login → access JWT (Bearer). Refresh token delivered via httpOnly cookie on `/api/v1/auth`.\n- Admin endpoints require the seeded admin (or any user promoted via PATCH /users/:id/role).\n- Mock payment provider auto-marks orders PAID.",
                  "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
              },
     "variable":  [
@@ -78,10 +78,8 @@
                                                         "script":  {
                                                                        "type":  "text/javascript",
                                                                        "exec":  [
-                                                                                    "pm.test(\u0027201 on first run (409 if email already registered)\u0027, () =\u003e pm.expect([201, 409]).to.include(pm.response.code));",
-                                                                                    "if (pm.response.code === 201) {",
-                                                                                    "  pm.test(\u0027returns created user\u0027, () =\u003e pm.expect(pm.response.json().data.email).to.be.a(\u0027string\u0027));",
-                                                                                    "}"
+                                                                                    "pm.test(\u0027Status 201\u0027, () =\u003e pm.response.to.have.status(201));",
+                                                                                    "pm.test(\u0027returns created user\u0027, () =\u003e pm.expect(pm.response.json().data.email).to.be.a(\u0027string\u0027));"
                                                                                 ]
                                                                    }
                                                     }
@@ -115,10 +113,8 @@
                                                         "script":  {
                                                                        "type":  "text/javascript",
                                                                        "exec":  [
-                                                                                    "pm.test(\u0027201 on first run (409 if already registered)\u0027, () =\u003e pm.expect([201, 409]).to.include(pm.response.code));",
-                                                                                    "if (pm.response.code === 201) {",
-                                                                                    "  pm.environment.set(\u0027managedUserId\u0027, pm.response.json().data.id);",
-                                                                                    "}"
+                                                                                    "pm.test(\u0027Status 201\u0027, () =\u003e pm.response.to.have.status(201));",
+                                                                                    "pm.environment.set(\u0027managedUserId\u0027, pm.response.json().data.id);"
                                                                                 ]
                                                                    }
                                                     }
@@ -393,7 +389,7 @@
                                   },
                                   {
                                       "name":  "Refresh — without cookie (401)",
-                                      "description":  "Clears the cookie jar first so the refresh token cookie is gone â†’ \u0027Missing refresh token\u0027.",
+                                      "description":  "Clears the cookie jar first so the refresh token cookie is gone → \u0027Missing refresh token\u0027.",
                                       "event":  [
                                                     {
                                                         "listen":  "prerequest",
@@ -1542,7 +1538,7 @@
                                   },
                                   {
                                       "name":  "Update Order Status",
-                                      "description":  "Admin moves the paid order from PAID â†’ PROCESSING.",
+                                      "description":  "Admin moves the paid order from PAID → PROCESSING.",
                                       "request":  {
                                                       "method":  "PATCH",
                                                       "header":  [
@@ -1658,7 +1654,7 @@
                                   },
                                   {
                                       "name":  "Get Guest Order as Customer (403)",
-                                      "description":  "A customer trying to view an order that belongs to no one (guest) or another user â†’ forbidden.",
+                                      "description":  "A customer trying to view an order that belongs to no one (guest) or another user → forbidden.",
                                       "request":  {
                                                       "method":  "GET",
                                                       "header":  [
@@ -1787,7 +1783,7 @@
                                   },
                                   {
                                       "name":  "Checkout — empty cart (409)",
-                                      "description":  "Authenticated checkout without items while the cart is empty â†’ conflict. (Cart was cleared by the happy-path checkout.)",
+                                      "description":  "Authenticated checkout without items while the cart is empty → conflict. (Cart was cleared by the happy-path checkout.)",
                                       "request":  {
                                                       "method":  "POST",
                                                       "header":  [
