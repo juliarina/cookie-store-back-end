@@ -4,7 +4,6 @@ export const listProductsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   search: z.string().trim().max(100).optional(),
-  category: z.string().trim().max(50).optional(),
   sort: z
     .enum(['price', '-price', 'rating', '-rating', 'newest', '-newest'])
     .default('newest'),
@@ -32,7 +31,6 @@ export const createProductSchema = z.object({
   rating: z.coerce.number().min(0).max(5).default(0),
   tag: z.string().trim().max(50).optional(),
   imageUrl: z.string().trim().url('Invalid image URL').max(500).optional(),
-  categoryId: z.string().uuid('Invalid category id').optional(),
 });
 
 export const updateProductSchema = z
@@ -44,7 +42,6 @@ export const updateProductSchema = z
     rating: z.coerce.number().min(0).max(5).optional(),
     tag: z.string().trim().max(50).nullable().optional(),
     imageUrl: z.string().trim().url('Invalid image URL').max(500).nullable().optional(),
-    categoryId: z.string().uuid('Invalid category id').nullable().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'Provide at least one field to update',

@@ -30,7 +30,6 @@ export const productRouter = Router();
  *       - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
  *       - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
  *       - { name: search, in: query, schema: { type: string }, description: Full-text search over name & description }
- *       - { name: category, in: query, schema: { type: string }, description: Category slug }
  *       - { name: sort, in: query, schema: { type: string, enum: [price, -price, rating, -rating, newest, -newest], default: newest } }
  *       - { name: minPrice, in: query, schema: { type: number, minimum: 0 } }
  *       - { name: maxPrice, in: query, schema: { type: number, minimum: 0 } }
@@ -103,7 +102,6 @@ productRouter.use(authenticate, authorize(ROLES.ADMIN));
  *               rating: { type: number, minimum: 0, maximum: 5, default: 0 }
  *               tag: { type: string, maxLength: 50 }
  *               imageUrl: { type: string, format: uri, maxLength: 500 }
- *               categoryId: { type: string, format: uuid }
  *     responses:
  *       201:
  *         description: Product created
@@ -147,7 +145,6 @@ productRouter.post('/', validate({ body: createProductSchema }), createProductCo
  *               rating: { type: number, minimum: 0, maximum: 5 }
  *               tag: { type: string, nullable: true }
  *               imageUrl: { type: string, format: uri, nullable: true }
- *               categoryId: { type: string, format: uuid, nullable: true }
  *     responses:
  *       200:
  *         description: Updated product
