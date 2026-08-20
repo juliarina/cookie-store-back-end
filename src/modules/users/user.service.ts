@@ -1,8 +1,9 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { hashPassword } from '../../utils/password.js';
 import { buildPaginationMeta, parsePagination } from '../../utils/pagination.js';
-import type { ListUsersQuery, UpdateUserInput } from './user.validation.js';
+import type { ListUsersQuery, RegisterAdminInput, UpdateUserInput } from './user.validation.js';
 
 const USER_SELECT = {
   id: true,
@@ -43,13 +44,25 @@ export const listUsers = async (query: ListUsersQuery) => {
   return { users, pagination: buildPaginationMeta({ page, limit, total }) };
 };
 
+export const registerAdmin = async (input: RegisterAdminInput) => {
+  const existing = await prisma.user.findUnique({ where: { email: input.email } });
+  if (existing) throw ApiError.conflict('An account with this email already exists');
+
+  const passwordHash = await hashPassword(input.password);
+  return prisma.user.create({
+    data: {
+      email: input.email,
+      passwordHash,
+      name: input.name,
+      role: 'ADMIN',
+    },
+    select: USER_SELECT,
+  });
+};
+
 export const updateUser = async (id: string, input: UpdateUserInput) => {
   const existing = await prisma.user.findUnique({ where: { id }, select: { id: true } });
   if (!existing) throw ApiError.notFound('User not found');
 
-  const data: Prisma.UserUpdateInput = {};
-  if (input.role !== undefined) data.role = input.role;
-  if (input.isActive !== undefined) data.isActive = input.isActive;
-
-  return prisma.user.update({ where: { id }, data, select: USER_SELECT });
+  return prisma.user.update({ where: { id }, data: { isActive: input.isActive }, select: USER_SELECT });
 };
