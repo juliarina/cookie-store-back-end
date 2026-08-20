@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { authenticate } from '../../middleware/authenticate.js';
+import { authorize } from '../../middleware/authorize.js';
 import { validate } from '../../middleware/validate.js';
+import { ROLES } from '../../config/constants.js';
 import {
   addCartItemController,
   getCartController,
@@ -15,7 +17,7 @@ import {
 
 export const cartRouter = Router();
 
-cartRouter.use(authenticate);
+cartRouter.use(authenticate, authorize(ROLES.CUSTOMER));
 
 /**
  * @openapi
@@ -36,6 +38,8 @@ cartRouter.use(authenticate);
  *                 data: { $ref: '#/components/schemas/Cart' }
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  */
 cartRouter.get('/', getCartController);
 
@@ -70,6 +74,8 @@ cartRouter.get('/', getCartController);
  *         $ref: '#/components/responses/ValidationError'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       409:
@@ -120,6 +126,8 @@ cartRouter.post('/items', validate({ body: addCartItemSchema }), addCartItemCont
  *         $ref: '#/components/responses/ValidationError'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  *       409:
@@ -145,6 +153,8 @@ cartRouter.patch(
  *         description: Item removed
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */

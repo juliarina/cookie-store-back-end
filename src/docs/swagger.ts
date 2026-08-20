@@ -288,7 +288,7 @@ const spec = swaggerJsdoc({
       { name: 'Me', description: 'Current user profile' },
       { name: 'Users', description: 'Admin user management' },
       { name: 'Products', description: 'Product catalog' },
-      { name: 'Cart', description: 'Per-user shopping cart' },
+      { name: 'Cart', description: 'Customer-only shopping cart' },
       { name: 'Orders', description: 'Checkout & order management' },
     ],
   },
