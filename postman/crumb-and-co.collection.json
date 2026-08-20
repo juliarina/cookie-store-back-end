@@ -1,7 +1,7 @@
 {
     "info":  {
                  "name":  "Crumb \u0026 Co. — Backend API",
-                 "description":  "Complete Postman collection for the Crumb \u0026 Co. e-commerce backend (Express v5 + Prisma).\n\n## Setup\n1. Start the server: `npm run dev` (defaults to http://localhost:4000).\n2. Seed the database: `npm run db:seed` (creates the admin `admin@crumbco.dev` / `Admin123!`, products).\n3. Import the environment `crumb-and-co.environment.json` and select it.\n\n## How to run\n- Run the whole collection in order (Auth → Me → Users → Categories → Products → Cart → Orders → Cleanup).\n- Tokens are captured automatically: Login requests store the JWT in the environment variable `accessToken` / `adminAccessToken`, which every protected request reads.\n- Refresh tokens are httpOnly cookies handled automatically by Postman\u0027s cookie jar.\n- Re-running: Register requests require a fresh email (a 409 duplicate will fail the test) — clear the email variables in the environment or use new ones to re-run. Product creation tolerates 409 and reuses the seeded product captured from the list endpoints.\n\n## Auth model\n- Register/login → access JWT (Bearer). Refresh token delivered via httpOnly cookie on `/api/v1/auth`.\n- Admin endpoints require the seeded admin (or any user promoted via PATCH /users/:id/role).\n- Mock payment provider auto-marks orders PAID.",
+                 "description":  "Complete Postman collection for the Crumb \u0026 Co. e-commerce backend (Express v5 + Prisma).\n\n## Setup\n1. Start the server: `npm run dev` (defaults to http://localhost:4000).\n2. Seed the database: `npm run db:seed` (creates the admin `admin@crumbco.dev` / `Admin123!`, products).\n3. Import the environment `crumb-and-co.environment.json` and select it.\n\n## How to run\n- Run the whole collection in order (Auth → Me → Users → Categories → Products → Cart → Orders → Cleanup).\n- Tokens are captured automatically: Login requests store the JWT in the environment variable `accessToken` / `adminAccessToken`, which every protected request reads.\n- Refresh tokens are httpOnly cookies handled automatically by Postman\u0027s cookie jar.\n- Re-running: Register requests require a fresh email (a 409 duplicate will fail the test) — clear the email variables in the environment or use new ones to re-run. Product creation tolerates 409 and reuses the seeded product captured from the list endpoints.\n\n## Auth model\n- Register/login → access JWT (Bearer). Refresh token delivered via httpOnly cookie on `/api/v1/auth`.\n- Admin endpoints require the seeded admin (or any user promoted via PATCH /users/:id/role).\n- Customers can delete their own account via DELETE /me (hard delete; order history is detached and kept). Admin accounts cannot delete themselves.\n- Mock payment provider auto-marks orders PAID.",
                  "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
              },
     "variable":  [
@@ -733,6 +733,59 @@
                                                                                     "pm.test(\u0027code is VALIDATION_ERROR\u0027, () =\u003e pm.expect(pm.response.json().error.code).to.eql(\u0027VALIDATION_ERROR\u0027));"
                                                                                 ]
                                                                    }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "url":  "{{baseUrl}}/api/v1/me",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ]
+                                                  },
+                                      "name":  "Delete Account - no token (401)",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 401\u0027, () =\u003e pm.response.to.have.status(401));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "url":  "{{baseUrl}}/api/v1/me",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "type":  "text",
+                                                                         "value":  "Bearer {{adminAccessToken}}"
+                                                                     }
+                                                                 ]
+                                                  },
+                                      "name":  "Delete Account - admin forbidden (403)",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 403\u0027, () =\u003e pm.response.to.have.status(403));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
                                                     }
                                                 ]
                                   }
@@ -2221,6 +2274,41 @@
                                                                          "listen":  "test"
                                                                      }
                                                                  ]
+                                                   },
+                                                   {
+                                                       "name":  "Login Customer",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+                                                                                      {
+                                                                                          "key":  "Content-Type",
+                                                                                          "value":  "application/json"
+                                                                                      }
+                                                                                  ],
+                                                                       "url":  "{{baseUrl}}/api/v1/auth/login",
+                                                                       "body":  {
+                                                                                    "mode":  "raw",
+                                                                                    "raw":  "{\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{customerPassword}}\"\n}",
+                                                                                    "options":  {
+                                                                                                    "raw":  {
+                                                                                                                "language":  "json"
+                                                                                                            }
+                                                                                                }
+                                                                                }
+                                                                   },
+                                                       "event":  [
+                                                                     {
+                                                                         "script":  {
+                                                                                        "exec":  [
+                                                                                                     "const json = pm.response.json();",
+                                                                                                     "pm.environment.set(\u0027accessToken\u0027, json.data.accessToken);",
+                                                                                                     "pm.environment.set(\u0027customerUserId\u0027, json.data.user.id);"
+                                                                                                 ],
+                                                                                        "type":  "text/javascript"
+                                                                                    },
+                                                                         "listen":  "test"
+                                                                     }
+                                                                 ]
                                                    }
                                                ]
                                   },
@@ -2273,6 +2361,36 @@
                                                                                     "pm.test(\u0027code is VALIDATION_ERROR\u0027, () =\u003e pm.expect(pm.response.json().error.code).to.eql(\u0027VALIDATION_ERROR\u0027));"
                                                                                 ]
                                                                    }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "url":  "{{baseUrl}}/api/v1/me",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "type":  "text",
+                                                                         "value":  "Bearer {{accessToken}}"
+                                                                     }
+                                                                 ]
+                                                  },
+                                      "name":  "Delete Account",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 204\u0027, () =\u003e pm.response.to.have.status(204));",
+                                                                                    "pm.test(\u0027account deleted\u0027, () =\u003e pm.expect(pm.response.body).to.eql(\u0027\u0027));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
                                                     }
                                                 ]
                                   }
