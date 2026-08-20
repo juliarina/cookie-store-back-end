@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+﻿import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -11,7 +11,6 @@ type SeedProduct = {
   stock: number;
   rating: number;
   tag?: string;
-  category: string;
 };
 
 const products: SeedProduct[] = [
@@ -23,7 +22,6 @@ const products: SeedProduct[] = [
     stock: 40,
     rating: 4.9,
     tag: 'Best seller',
-    category: 'Chocolate',
   },
   {
     slug: 'double-fudge',
@@ -32,7 +30,6 @@ const products: SeedProduct[] = [
     price: 4,
     stock: 12,
     rating: 4.7,
-    category: 'Chocolate',
   },
   {
     slug: 'oatmeal-raisin',
@@ -41,7 +38,6 @@ const products: SeedProduct[] = [
     price: 3.25,
     stock: 6,
     rating: 4.2,
-    category: 'Classic',
   },
   {
     slug: 'snickerdoodle',
@@ -50,7 +46,6 @@ const products: SeedProduct[] = [
     price: 3.25,
     stock: 0,
     rating: 4.5,
-    category: 'Classic',
   },
   {
     slug: 'peanut-butter',
@@ -60,7 +55,6 @@ const products: SeedProduct[] = [
     stock: 25,
     rating: 4.8,
     tag: 'Best seller',
-    category: 'Nut',
   },
   {
     slug: 'red-velvet-white-chip',
@@ -69,7 +63,6 @@ const products: SeedProduct[] = [
     price: 4.25,
     stock: 8,
     rating: 4.6,
-    category: 'Chocolate',
   },
   {
     slug: 'mm-celebration',
@@ -78,7 +71,6 @@ const products: SeedProduct[] = [
     price: 3.75,
     stock: 3,
     rating: 4,
-    category: 'Classic',
   },
   {
     slug: 'salted-caramel',
@@ -88,29 +80,14 @@ const products: SeedProduct[] = [
     stock: 18,
     rating: 4.7,
     tag: 'New',
-    category: 'Classic',
   },
 ];
-
-const slugify = (name: string): string =>
-  name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 async function main(): Promise<void> {
   const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@crumbco.dev';
   const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'Admin123!';
 
-  const categoryNames = [...new Set(products.map((p) => p.category))];
-  for (const name of categoryNames) {
-    await prisma.category.upsert({
-      where: { slug: slugify(name) },
-      update: {},
-      create: { name, slug: slugify(name) },
-    });
-  }
-  const categories = await prisma.category.findMany();
-
   for (const p of products) {
-    const category = categories.find((c) => c.name === p.category);
     await prisma.product.upsert({
       where: { slug: p.slug },
       update: {
@@ -120,7 +97,6 @@ async function main(): Promise<void> {
         stock: p.stock,
         rating: p.rating,
         tag: p.tag ?? null,
-        categoryId: category?.id,
         isActive: true,
       },
       create: {
@@ -131,7 +107,6 @@ async function main(): Promise<void> {
         stock: p.stock,
         rating: p.rating,
         tag: p.tag ?? null,
-        categoryId: category?.id,
       },
     });
   }
