@@ -23,7 +23,7 @@ const spec = swaggerJsdoc({
       title: 'Crumb & Co. — Backend API',
       version: '0.1.0',
       description:
-        'E-commerce backend for the Crumb & Co. cookie shop. Covers auth (JWT access + refresh), users, catalog (categories & products), cart, and orders with payment.',
+        'E-commerce backend for the Crumb & Co. cookie shop. Covers auth (JWT access + refresh), users, catalog (products), cart, and orders with payment.',
     },
     servers: [{ url: `${env.API_URL}` }],
     components: {
@@ -48,18 +48,6 @@ const spec = swaggerJsdoc({
             updatedAt: { type: 'string', format: 'date-time' },
           },
         },
-        Category: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', format: 'uuid' },
-            name: { type: 'string' },
-            slug: { type: 'string' },
-            _count: {
-              type: 'object',
-              properties: { products: { type: 'integer' } },
-            },
-          },
-        },
         Product: {
           type: 'object',
           properties: {
@@ -72,17 +60,8 @@ const spec = swaggerJsdoc({
             rating: { type: 'number' },
             tag: { type: 'string', nullable: true },
             imageUrl: { type: 'string', nullable: true },
-            category: { $ref: '#/components/schemas/CategoryLite' },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
-          },
-        },
-        CategoryLite: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', format: 'uuid' },
-            name: { type: 'string' },
-            slug: { type: 'string' },
           },
         },
         Cart: {
@@ -308,7 +287,6 @@ const spec = swaggerJsdoc({
       { name: 'Auth', description: 'Register, login, refresh & logout' },
       { name: 'Me', description: 'Current user profile' },
       { name: 'Users', description: 'Admin user management' },
-      { name: 'Categories', description: 'Product categories' },
       { name: 'Products', description: 'Product catalog' },
       { name: 'Cart', description: 'Per-user shopping cart' },
       { name: 'Orders', description: 'Checkout & order management' },
