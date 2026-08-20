@@ -514,6 +514,47 @@
                      "description":  "Current authenticated user (customer token).",
                      "item":  [
                                   {
+                                      "description":  "Login needed for the role-protected requests below.",
+                                      "name":  "Prerequisite",
+                                      "item":  [
+                                                   {
+                                                       "name":  "Login Customer",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+                                                                                      {
+                                                                                          "key":  "Content-Type",
+                                                                                          "value":  "application/json"
+                                                                                      }
+                                                                                  ],
+                                                                       "url":  "{{baseUrl}}/api/v1/auth/login",
+                                                                       "body":  {
+                                                                                    "mode":  "raw",
+                                                                                    "raw":  "{\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{customerPassword}}\"\n}",
+                                                                                    "options":  {
+                                                                                                    "raw":  {
+                                                                                                                "language":  "json"
+                                                                                                            }
+                                                                                                }
+                                                                                }
+                                                                   },
+                                                       "event":  [
+                                                                     {
+                                                                         "script":  {
+                                                                                        "exec":  [
+                                                                                                     "const json = pm.response.json();",
+                                                                                                     "pm.environment.set(\u0027accessToken\u0027, json.data.accessToken);",
+                                                                                                     "pm.environment.set(\u0027customerUserId\u0027, json.data.user.id);"
+                                                                                                 ],
+                                                                                        "type":  "text/javascript"
+                                                                                    },
+                                                                         "listen":  "test"
+                                                                     }
+                                                                 ]
+                                                   }
+                                               ]
+                                  },
+                                  {
                                       "name":  "Get Me",
                                       "description":  "Requires a valid access token. Run \u0027Auth \u003e Login Customer\u0027 first — it stores the JWT in the environment variable `accessToken`, which this request sends as `Authorization: Bearer {{accessToken}}`.",
                                       "event":  [
@@ -702,6 +743,47 @@
                      "description":  "Admin-only user management.",
                      "item":  [
                                   {
+                                      "description":  "Login needed for the role-protected requests below.",
+                                      "name":  "Prerequisite",
+                                      "item":  [
+                                                   {
+                                                       "name":  "Login Admin",
+                                                       "description":  "Uses the seeded admin (see `npm run db:seed`).",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+                                                                                      {
+                                                                                          "key":  "Content-Type",
+                                                                                          "value":  "application/json"
+                                                                                      }
+                                                                                  ],
+                                                                       "url":  "{{baseUrl}}/api/v1/auth/login",
+                                                                       "body":  {
+                                                                                    "mode":  "raw",
+                                                                                    "raw":  "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+                                                                                    "options":  {
+                                                                                                    "raw":  {
+                                                                                                                "language":  "json"
+                                                                                                            }
+                                                                                                }
+                                                                                }
+                                                                   },
+                                                       "event":  [
+                                                                     {
+                                                                         "script":  {
+                                                                                        "exec":  [
+                                                                                                     "const json = pm.response.json();",
+                                                                                                     "pm.environment.set(\u0027adminAccessToken\u0027, json.data.accessToken);"
+                                                                                                 ],
+                                                                                        "type":  "text/javascript"
+                                                                                    },
+                                                                         "listen":  "test"
+                                                                     }
+                                                                 ]
+                                                   }
+                                               ]
+                                  },
+                                  {
                                       "name":  "List Users",
                                       "request":  {
                                                       "method":  "GET",
@@ -832,6 +914,47 @@
                      "name":  "Products",
                      "description":  "Products are public to read; writes are admin-only.",
                      "item":  [
+                                  {
+                                      "description":  "Login needed for the role-protected requests below.",
+                                      "name":  "Prerequisite",
+                                      "item":  [
+                                                   {
+                                                       "name":  "Login Admin",
+                                                       "description":  "Uses the seeded admin (see `npm run db:seed`).",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+                                                                                      {
+                                                                                          "key":  "Content-Type",
+                                                                                          "value":  "application/json"
+                                                                                      }
+                                                                                  ],
+                                                                       "url":  "{{baseUrl}}/api/v1/auth/login",
+                                                                       "body":  {
+                                                                                    "mode":  "raw",
+                                                                                    "raw":  "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+                                                                                    "options":  {
+                                                                                                    "raw":  {
+                                                                                                                "language":  "json"
+                                                                                                            }
+                                                                                                }
+                                                                                }
+                                                                   },
+                                                       "event":  [
+                                                                     {
+                                                                         "script":  {
+                                                                                        "exec":  [
+                                                                                                     "const json = pm.response.json();",
+                                                                                                     "pm.environment.set(\u0027adminAccessToken\u0027, json.data.accessToken);"
+                                                                                                 ],
+                                                                                        "type":  "text/javascript"
+                                                                                    },
+                                                                         "listen":  "test"
+                                                                     }
+                                                                 ]
+                                                   }
+                                               ]
+                                  },
                                   {
                                       "name":  "List Products",
                                       "request":  {
@@ -1034,6 +1157,82 @@
                      "name":  "Cart",
                      "description":  "Customer-only cart. Admin tokens get 403 on every cart endpoint. The last request re-adds an item so the cart-based checkout in the Orders folder has stock to buy.",
                      "item":  [
+                                  {
+                                      "description":  "Login needed for the role-protected requests below.",
+                                      "name":  "Prerequisite",
+                                      "item":  [
+                                                   {
+                                                       "name":  "Login Customer",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+                                                                                      {
+                                                                                          "key":  "Content-Type",
+                                                                                          "value":  "application/json"
+                                                                                      }
+                                                                                  ],
+                                                                       "url":  "{{baseUrl}}/api/v1/auth/login",
+                                                                       "body":  {
+                                                                                    "mode":  "raw",
+                                                                                    "raw":  "{\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{customerPassword}}\"\n}",
+                                                                                    "options":  {
+                                                                                                    "raw":  {
+                                                                                                                "language":  "json"
+                                                                                                            }
+                                                                                                }
+                                                                                }
+                                                                   },
+                                                       "event":  [
+                                                                     {
+                                                                         "script":  {
+                                                                                        "exec":  [
+                                                                                                     "const json = pm.response.json();",
+                                                                                                     "pm.environment.set(\u0027accessToken\u0027, json.data.accessToken);",
+                                                                                                     "pm.environment.set(\u0027customerUserId\u0027, json.data.user.id);"
+                                                                                                 ],
+                                                                                        "type":  "text/javascript"
+                                                                                    },
+                                                                         "listen":  "test"
+                                                                     }
+                                                                 ]
+                                                   },
+                                                   {
+                                                       "name":  "Login Admin",
+                                                       "description":  "Uses the seeded admin (see `npm run db:seed`).",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+                                                                                      {
+                                                                                          "key":  "Content-Type",
+                                                                                          "value":  "application/json"
+                                                                                      }
+                                                                                  ],
+                                                                       "url":  "{{baseUrl}}/api/v1/auth/login",
+                                                                       "body":  {
+                                                                                    "mode":  "raw",
+                                                                                    "raw":  "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+                                                                                    "options":  {
+                                                                                                    "raw":  {
+                                                                                                                "language":  "json"
+                                                                                                            }
+                                                                                                }
+                                                                                }
+                                                                   },
+                                                       "event":  [
+                                                                     {
+                                                                         "script":  {
+                                                                                        "exec":  [
+                                                                                                     "const json = pm.response.json();",
+                                                                                                     "pm.environment.set(\u0027adminAccessToken\u0027, json.data.accessToken);"
+                                                                                                 ],
+                                                                                        "type":  "text/javascript"
+                                                                                    },
+                                                                         "listen":  "test"
+                                                                     }
+                                                                 ]
+                                                   }
+                                               ]
+                                  },
                                   {
                                       "name":  "Get Cart",
                                       "request":  {
@@ -1444,6 +1643,82 @@
                      "name":  "Orders",
                      "description":  "Checkout (guest and cart-based), listing, single order, admin status updates. Mock payment auto-pays, so orders are created as PAID.",
                      "item":  [
+                                  {
+                                      "description":  "Login needed for the role-protected requests below.",
+                                      "name":  "Prerequisite",
+                                      "item":  [
+                                                   {
+                                                       "name":  "Login Customer",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+                                                                                      {
+                                                                                          "key":  "Content-Type",
+                                                                                          "value":  "application/json"
+                                                                                      }
+                                                                                  ],
+                                                                       "url":  "{{baseUrl}}/api/v1/auth/login",
+                                                                       "body":  {
+                                                                                    "mode":  "raw",
+                                                                                    "raw":  "{\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{customerPassword}}\"\n}",
+                                                                                    "options":  {
+                                                                                                    "raw":  {
+                                                                                                                "language":  "json"
+                                                                                                            }
+                                                                                                }
+                                                                                }
+                                                                   },
+                                                       "event":  [
+                                                                     {
+                                                                         "script":  {
+                                                                                        "exec":  [
+                                                                                                     "const json = pm.response.json();",
+                                                                                                     "pm.environment.set(\u0027accessToken\u0027, json.data.accessToken);",
+                                                                                                     "pm.environment.set(\u0027customerUserId\u0027, json.data.user.id);"
+                                                                                                 ],
+                                                                                        "type":  "text/javascript"
+                                                                                    },
+                                                                         "listen":  "test"
+                                                                     }
+                                                                 ]
+                                                   },
+                                                   {
+                                                       "name":  "Login Admin",
+                                                       "description":  "Uses the seeded admin (see `npm run db:seed`).",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+                                                                                      {
+                                                                                          "key":  "Content-Type",
+                                                                                          "value":  "application/json"
+                                                                                      }
+                                                                                  ],
+                                                                       "url":  "{{baseUrl}}/api/v1/auth/login",
+                                                                       "body":  {
+                                                                                    "mode":  "raw",
+                                                                                    "raw":  "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+                                                                                    "options":  {
+                                                                                                    "raw":  {
+                                                                                                                "language":  "json"
+                                                                                                            }
+                                                                                                }
+                                                                                }
+                                                                   },
+                                                       "event":  [
+                                                                     {
+                                                                         "script":  {
+                                                                                        "exec":  [
+                                                                                                     "const json = pm.response.json();",
+                                                                                                     "pm.environment.set(\u0027adminAccessToken\u0027, json.data.accessToken);"
+                                                                                                 ],
+                                                                                        "type":  "text/javascript"
+                                                                                    },
+                                                                         "listen":  "test"
+                                                                     }
+                                                                 ]
+                                                   }
+                                               ]
+                                  },
                                   {
                                       "name":  "Checkout (guest)",
                                       "description":  "Guest checkout sends explicit items. Saves the guest order id for the 403 negative test.",
@@ -1908,6 +2183,47 @@
                      "name":  "Cleanup",
                      "description":  "Deletes the product created during this run (soft delete).",
                      "item":  [
+                                  {
+                                      "description":  "Login needed for the role-protected requests below.",
+                                      "name":  "Prerequisite",
+                                      "item":  [
+                                                   {
+                                                       "name":  "Login Admin",
+                                                       "description":  "Uses the seeded admin (see `npm run db:seed`).",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+                                                                                      {
+                                                                                          "key":  "Content-Type",
+                                                                                          "value":  "application/json"
+                                                                                      }
+                                                                                  ],
+                                                                       "url":  "{{baseUrl}}/api/v1/auth/login",
+                                                                       "body":  {
+                                                                                    "mode":  "raw",
+                                                                                    "raw":  "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+                                                                                    "options":  {
+                                                                                                    "raw":  {
+                                                                                                                "language":  "json"
+                                                                                                            }
+                                                                                                }
+                                                                                }
+                                                                   },
+                                                       "event":  [
+                                                                     {
+                                                                         "script":  {
+                                                                                        "exec":  [
+                                                                                                     "const json = pm.response.json();",
+                                                                                                     "pm.environment.set(\u0027adminAccessToken\u0027, json.data.accessToken);"
+                                                                                                 ],
+                                                                                        "type":  "text/javascript"
+                                                                                    },
+                                                                         "listen":  "test"
+                                                                     }
+                                                                 ]
+                                                   }
+                                               ]
+                                  },
                                   {
                                       "name":  "Delete Product",
                                       "description":  "Soft deletes `createdProductId` (sets isActive=false). Kept last so the cart/order flows still have stock.",
