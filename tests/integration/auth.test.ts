@@ -190,15 +190,18 @@ describe('auth', () => {
   });
 
   describe('users admin endpoints', () => {
-    it('lists users for admin only', async () => {
-      await createCustomer();
-      const adminLogin = await request(app)
+    const adminLogin = async () => {
+      const res = await request(app)
         .post(`${base}/auth/login`)
         .send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+      return res.body.data.accessToken as string;
+    };
 
-      const res = await request(app)
-        .get(`${base}/users`)
-        .set('Authorization', `Bearer ${adminLogin.body.data.accessToken}`);
+    it('lists users for admin only', async () => {
+      await createCustomer();
+      const token = await adminLogin();
+
+      const res = await request(app).get(`${base}/users`).set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(200);
       expect(res.body.data.length).toBeGreaterThanOrEqual(2);
     });
@@ -210,6 +213,94 @@ describe('auth', () => {
         .get(`${base}/users`)
         .set('Authorization', `Bearer ${login.body.data.accessToken}`);
       expect(res.status).toBe(403);
+    });
+
+    it('registers a new admin with role ADMIN', async () => {
+      const token = await adminLogin();
+      const input = {
+        email: `admin-${crypto.randomUUID()}@example.com`,
+        password: 'AdminPass1!',
+        name: 'New Admin',
+      };
+
+      const res = await request(app)
+        .post(`${base}/users/register`)
+        .set('Authorization', `Bearer ${token}`)
+        .send(input);
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.email).toBe(input.email);
+      expect(res.body.data.role).toBe('ADMIN');
+
+      const login = await request(app).post(`${base}/auth/login`).send({ email: input.email, password: input.password });
+      expect(login.status).toBe(200);
+      expect(login.body.data.user.role).toBe('ADMIN');
+    });
+
+    it('rejects duplicate admin email with 409', async () => {
+      const token = await adminLogin();
+      const input = {
+        email: `admin-${crypto.randomUUID()}@example.com`,
+        password: 'AdminPass1!',
+        name: 'Dup Admin',
+      };
+      await request(app)
+        .post(`${base}/users/register`)
+        .set('Authorization', `Bearer ${token}`)
+        .send(input);
+
+      const res = await request(app)
+        .post(`${base}/users/register`)
+        .set('Authorization', `Bearer ${token}`)
+        .send(input);
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('CONFLICT');
+    });
+
+    it('rejects admin registration by customers with 403', async () => {
+      const { email, password } = await createCustomer();
+      const login = await request(app).post(`${base}/auth/login`).send({ email, password });
+      const res = await request(app)
+        .post(`${base}/users/register`)
+        .set('Authorization', `Bearer ${login.body.data.accessToken}`)
+        .send({
+          email: `admin-${crypto.randomUUID()}@example.com`,
+          password: 'AdminPass1!',
+          name: 'Not Allowed',
+        });
+      expect(res.status).toBe(403);
+    });
+
+    it('toggles isActive via PATCH /users/:id', async () => {
+      const token = await adminLogin();
+      const { user } = await createCustomer();
+
+      const res = await request(app)
+        .patch(`${base}/users/${user.id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ isActive: false });
+      expect(res.status).toBe(200);
+      expect(res.body.data.isActive).toBe(false);
+      expect(res.body.data.role).toBe('CUSTOMER');
+
+      const login = await request(app).post(`${base}/auth/login`).send({ email: user.email, password: 'Passw0rd!' });
+      expect(login.status).toBe(401);
+    });
+
+    it('rejects role changes with 400', async () => {
+      const token = await adminLogin();
+      const { user } = await createCustomer();
+
+      const res = await request(app)
+        .patch(`${base}/users/${user.id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ role: 'ADMIN', isActive: true });
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+
+      const unchanged = await prisma.user.findUnique({ where: { id: user.id } });
+      expect(unchanged?.role).toBe('CUSTOMER');
+      expect(unchanged?.isActive).toBe(true);
     });
   });
 });
