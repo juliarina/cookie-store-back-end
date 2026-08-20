@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { authenticate } from '../../middleware/authenticate.js';
 import { authorize } from '../../middleware/authorize.js';
 import { validate } from '../../middleware/validate.js';
@@ -18,13 +17,6 @@ import {
   updateOrderStatusSchema,
 } from './order.validation.js';
 
-const optionalAuth: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
-  if (req.headers.authorization?.startsWith('Bearer ')) {
-    return authenticate(req, res, next);
-  }
-  return next();
-};
-
 export const orderRouter = Router();
 
 /**
@@ -32,10 +24,10 @@ export const orderRouter = Router();
  * /orders:
  *   post:
  *     tags: [Orders]
- *     summary: Checkout — either from the authenticated user's cart or as a guest
+ *     summary: Checkout from the authenticated user's cart
  *     description: |
- *       Authenticated users may omit `items` and check out their cart (it is cleared after).
- *       Guests must provide `items`. Stock is reserved atomically inside a transaction.
+ *       Requires a logged-in customer. The user's cart is checked out and cleared after.
+ *       Guest checkout is not supported. Stock is reserved atomically inside a transaction.
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
  *       required: true
@@ -50,15 +42,6 @@ export const orderRouter = Router();
  *               phone: { type: string, maxLength: 30 }
  *               city: { type: string, maxLength: 100 }
  *               address: { type: string, maxLength: 300 }
- *               items:
- *                 type: array
- *                 minItems: 1
- *                 items:
- *                   type: object
- *                   required: [productId, quantity]
- *                   properties:
- *                     productId: { type: string, format: uuid }
- *                     quantity: { type: integer, minimum: 1, maximum: 100 }
  *     responses:
  *       201:
  *         description: Order created
@@ -71,16 +54,12 @@ export const orderRouter = Router();
  *                 data: { $ref: '#/components/schemas/Order' }
  *       400:
  *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  *       409:
  *         $ref: '#/components/responses/InsufficientStock'
  */
-orderRouter.post(
-  '/',
-  optionalAuth,
-  checkoutLimiter,
-  validate({ body: checkoutSchema }),
-  checkoutController
-);
+orderRouter.post('/', authenticate, checkoutLimiter, validate({ body: checkoutSchema }), checkoutController);
 
 orderRouter.use(authenticate);
 

@@ -5,7 +5,7 @@ import * as orderService from './order.service.js';
 import type { CheckoutInput, ListOrdersQuery, UpdateOrderStatusInput } from './order.validation.js';
 
 export const checkoutController = asyncHandler(async (req: Request, res: Response) => {
-  const order = await orderService.checkout(req.validatedBody as CheckoutInput, req.user?.id);
+  const order = await orderService.checkout(req.validatedBody as CheckoutInput, req.user!.id);
   sendSuccess(res, { status: 201, data: order });
 });
 

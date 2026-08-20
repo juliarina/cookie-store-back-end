@@ -46,28 +46,24 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   CANCELLED: [],
 };
 
-export const checkout = async (input: CheckoutInput, userId?: string) => {
-  if (userId) {
-    const cart = await prisma.cart.findUnique({
-      where: { userId },
-      include: {
-        items: {
-          include: {
-            product: { select: { id: true, name: true, price: true, stock: true, isActive: true } },
-          },
+export const checkout = async (input: CheckoutInput, userId: string) => {
+  const cart = await prisma.cart.findUnique({
+    where: { userId },
+    include: {
+      items: {
+        include: {
+          product: { select: { id: true, name: true, price: true, stock: true, isActive: true } },
         },
       },
-    });
-    const cartItems = (cart?.items ?? []).filter((item) => item.product.isActive);
-    if (cartItems.length === 0) throw ApiError.conflict('Your cart is empty');
+    },
+  });
+  const cartItems = (cart?.items ?? []).filter((item) => item.product.isActive);
+  if (cartItems.length === 0) throw ApiError.conflict('Your cart is empty');
 
-    input.items = cartItems.map((item) => ({
-      productId: item.productId,
-      quantity: item.quantity,
-    }));
-  } else if (!input.items || input.items.length === 0) {
-    throw ApiError.badRequest('Provide at least one item');
-  }
+  const items = cartItems.map((item) => ({
+    productId: item.productId,
+    quantity: item.quantity,
+  }));
 
   const paymentProvider = getPaymentProvider();
 
@@ -81,7 +77,7 @@ export const checkout = async (input: CheckoutInput, userId?: string) => {
     }> = [];
     let subtotal = 0;
 
-    for (const item of input.items!) {
+    for (const item of items) {
       const product = await tx.product.findUnique({
         where: { id: item.productId },
         select: { id: true, name: true, price: true, stock: true, isActive: true },
@@ -119,7 +115,7 @@ export const checkout = async (input: CheckoutInput, userId?: string) => {
         created = await tx.order.create({
           data: {
             orderNumber: generateOrderNumber(),
-            userId: userId ?? null,
+            userId,
             status: ORDER_STATUS.PENDING,
             paymentStatus: PAYMENT_STATUS.UNPAID,
             subtotal,
@@ -160,10 +156,8 @@ export const checkout = async (input: CheckoutInput, userId?: string) => {
     });
   });
 
-  if (userId) {
-    const cart = await prisma.cart.findUnique({ where: { userId }, select: { id: true } });
-    if (cart) await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
-  }
+  const cartRecord = await prisma.cart.findUnique({ where: { userId }, select: { id: true } });
+  if (cartRecord) await prisma.cartItem.deleteMany({ where: { cartId: cartRecord.id } });
 
   return order;
 };
