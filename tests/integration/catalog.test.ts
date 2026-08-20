@@ -12,31 +12,6 @@ const adminToken = async () => {
 };
 
 describe('catalog', () => {
-  describe('GET /categories', () => {
-    it('lists seeded categories', async () => {
-      const res = await request(app).get(`${base}/categories`);
-      expect(res.status).toBe(200);
-      expect(res.body.data.length).toBe(2);
-      expect(res.body.data[0].slug).toBeDefined();
-    });
-  });
-
-  describe('POST /categories', () => {
-    it('creates a category as admin', async () => {
-      const res = await request(app)
-        .post(`${base}/categories`)
-        .set('Authorization', `Bearer ${await adminToken()}`)
-        .send({ name: 'Vegan' });
-      expect(res.status).toBe(201);
-      expect(res.body.data.slug).toBe('vegan');
-    });
-
-    it('forbids non-admins', async () => {
-      const res = await request(app).post(`${base}/categories`).send({ name: 'Vegan' });
-      expect(res.status).toBe(401);
-    });
-  });
-
   describe('GET /products', () => {
     it('lists all active products with pagination meta', async () => {
       const res = await request(app).get(`${base}/products`).query({ limit: 2 });
@@ -44,12 +19,6 @@ describe('catalog', () => {
       expect(res.body.data.length).toBe(2);
       expect(res.body.meta.pagination.total).toBe(3);
       expect(res.body.meta.pagination.hasNext).toBe(true);
-    });
-
-    it('filters by category slug', async () => {
-      const res = await request(app).get(`${base}/products`).query({ category: 'chocolate' });
-      expect(res.status).toBe(200);
-      expect(res.body.data.every((p: { category: { slug: string } }) => p.category.slug === 'chocolate')).toBe(true);
     });
 
     it('searches by name', async () => {

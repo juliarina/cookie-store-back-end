@@ -9,7 +9,6 @@ export const TABLES = [
   'Cart',
   'Review',
   'Product',
-  'Category',
   'User',
 ] as const;
 
@@ -24,7 +23,6 @@ export interface BaselineProduct {
   name: string;
   price: number;
   stock: number;
-  category: string;
 }
 
 export const seedBaseline = async (client: PrismaClient = prisma): Promise<void> => {
@@ -39,17 +37,12 @@ export const seedBaseline = async (client: PrismaClient = prisma): Promise<void>
   });
 
   const products: BaselineProduct[] = [
-    { slug: 'classic-chocolate-chip', name: 'Classic Chocolate Chip', price: 3.5, stock: 40, category: 'Chocolate' },
-    { slug: 'double-fudge', name: 'Double Fudge', price: 4, stock: 12, category: 'Chocolate' },
-    { slug: 'oatmeal-raisin', name: 'Oatmeal Raisin', price: 3.25, stock: 6, category: 'Classic' },
+    { slug: 'classic-chocolate-chip', name: 'Classic Chocolate Chip', price: 3.5, stock: 40 },
+    { slug: 'double-fudge', name: 'Double Fudge', price: 4, stock: 12 },
+    { slug: 'oatmeal-raisin', name: 'Oatmeal Raisin', price: 3.25, stock: 6 },
   ];
 
   for (const p of products) {
-    const category = await client.category.upsert({
-      where: { slug: p.category.toLowerCase() },
-      update: {},
-      create: { name: p.category, slug: p.category.toLowerCase() },
-    });
     await client.product.create({
       data: {
         slug: p.slug,
@@ -58,7 +51,6 @@ export const seedBaseline = async (client: PrismaClient = prisma): Promise<void>
         price: p.price,
         stock: p.stock,
         rating: 4,
-        categoryId: category.id,
       },
     });
   }
