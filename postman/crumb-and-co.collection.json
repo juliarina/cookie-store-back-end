@@ -427,17 +427,8 @@
                                   },
                                   {
                                       "name":  "Refresh — without cookie (401)",
-                                      "description":  "Clears the cookie jar first so the refresh token cookie is gone → \u0027Missing refresh token\u0027.",
+                                      "description":  "Sends NO cookies for this request via protocolProfileBehavior.disableCookies, so the httpOnly refreshToken cookie is never attached → \u0027Missing refresh token\u0027. (pm.cookies.jar() cannot remove httpOnly cookies, so per-request cookie disabling is the reliable fix.)",
                                       "event":  [
-                                                    {
-                                                        "listen":  "prerequest",
-                                                        "script":  {
-                                                                       "type":  "text/javascript",
-                                                                       "exec":  [
-                                                                                    "pm.cookies.jar().clear(pm.environment.get(\u0027baseUrl\u0027) + \u0027/api/v1/auth/refresh\u0027, () =\u003e {});"
-                                                                                ]
-                                                                   }
-                                                    },
                                                     {
                                                         "listen":  "test",
                                                         "script":  {
@@ -449,6 +440,9 @@
                                                                    }
                                                     }
                                                 ],
+                                      "protocolProfileBehavior":  {
+                                                                     "disableCookies":  true
+                                                                 },
                                       "request":  {
                                                       "method":  "POST",
                                                       "header":  [
