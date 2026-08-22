@@ -224,7 +224,7 @@ describe('auth', () => {
       };
 
       const res = await request(app)
-        .post(`${base}/users/register`)
+        .post(`${base}/admins`)
         .set('Authorization', `Bearer ${token}`)
         .send(input);
       expect(res.status).toBe(201);
@@ -245,12 +245,12 @@ describe('auth', () => {
         name: 'Dup Admin',
       };
       await request(app)
-        .post(`${base}/users/register`)
+        .post(`${base}/admins`)
         .set('Authorization', `Bearer ${token}`)
         .send(input);
 
       const res = await request(app)
-        .post(`${base}/users/register`)
+        .post(`${base}/admins`)
         .set('Authorization', `Bearer ${token}`)
         .send(input);
       expect(res.status).toBe(409);
@@ -261,7 +261,7 @@ describe('auth', () => {
       const { email, password } = await createCustomer();
       const login = await request(app).post(`${base}/auth/login`).send({ email, password });
       const res = await request(app)
-        .post(`${base}/users/register`)
+        .post(`${base}/admins`)
         .set('Authorization', `Bearer ${login.body.data.accessToken}`)
         .send({
           email: `admin-${crypto.randomUUID()}@example.com`,

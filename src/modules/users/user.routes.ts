@@ -21,46 +21,6 @@ userRouter.use(authenticate, authorize(ROLES.ADMIN));
 
 /**
  * @openapi
- * /users/register:
- *   post:
- *     tags: [Users]
- *     summary: Register a new admin account (admin only)
- *     description: Creates an ADMIN user so multiple admins can exist. Public customers use /auth/register instead.
- *     security: [{ bearerAuth: [] }]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, password, name]
- *             properties:
- *               email: { type: string, format: email }
- *               password: { type: string, minLength: 8, description: Must contain a letter and a number }
- *               name: { type: string, maxLength: 100 }
- *     responses:
- *       201:
- *         description: Admin created
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success: { type: boolean, enum: [true] }
- *                 data: { $ref: '#/components/schemas/User' }
- *       400:
- *         $ref: '#/components/responses/ValidationError'
- *       401:
- *         $ref: '#/components/responses/Unauthorized'
- *       403:
- *         $ref: '#/components/responses/Forbidden'
- *       409:
- *         $ref: '#/components/responses/Conflict'
- */
-userRouter.post('/register', validate({ body: registerAdminSchema }), registerAdminController);
-
-/**
- * @openapi
  * /users:
  *   get:
  *     tags: [Users]
@@ -98,7 +58,7 @@ userRouter.get('/', validate({ query: listUsersQuerySchema }), listUsersControll
  *   patch:
  *     tags: [Users]
  *     summary: Activate or deactivate a user (admin)
- *     description: Toggles a user's active state. Roles are never changed through this endpoint — new admins are created via POST /users/register.
+ *     description: Toggles a user's active state. Roles are never changed through this endpoint — new admins are created via POST /admins.
  *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -135,3 +95,47 @@ userRouter.patch(
   validate({ params: userParamsSchema, body: updateUserSchema }),
   updateUserController
 );
+
+export const adminRouter = Router();
+
+adminRouter.use(authenticate, authorize(ROLES.ADMIN));
+
+/**
+ * @openapi
+ * /admins:
+ *   post:
+ *     tags: [Admins]
+ *     summary: Register a new admin account (admin only)
+ *     description: Creates an ADMIN user so multiple admins can exist. Public customers use /auth/register instead. There is no role-changing endpoint.
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password, name]
+ *             properties:
+ *               email: { type: string, format: email }
+ *               password: { type: string, minLength: 8, description: Must contain a letter and a number }
+ *               name: { type: string, maxLength: 100 }
+ *     responses:
+ *       201:
+ *         description: Admin created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, enum: [true] }
+ *                 data: { $ref: '#/components/schemas/User' }
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ */
+adminRouter.post('/', validate({ body: registerAdminSchema }), registerAdminController);

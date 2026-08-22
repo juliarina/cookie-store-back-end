@@ -119,7 +119,7 @@ prisma/
 | PATCH | `/me` | any | Update own profile |
 | DELETE | `/me` | customer | Delete own account (hard delete, detaches order history) |
 | GET | `/users` | admin | List users |
-| POST | `/users/register` | admin | Register a new admin account |
+| POST | `/admins` | admin | Register a new admin account |
 | PATCH | `/users/:id` | admin | Activate / deactivate user (no role changes) |
 | GET | `/products` | — | List with search/filters/pagination |
 | GET | `/products/:slug` | — | Product detail |

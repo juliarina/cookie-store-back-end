@@ -1,7 +1,7 @@
 {
     "info":  {
                  "name":  "Crumb \u0026 Co. — Backend API",
-                 "description":  "Complete Postman collection for the Crumb \u0026 Co. e-commerce backend (Express v5 + Prisma).\n\n## Setup\n1. Start the server: `npm run dev` (defaults to http://localhost:4000).\n2. Seed the database: `npm run db:seed` (creates the admin `admin@crumbco.dev` / `Admin123!`, products).\n3. Import the environment `crumb-and-co.environment.json` and select it.\n\n## How to run\n- Run the whole collection in order (Auth → Me → Users → Categories → Products → Cart → Orders → Cleanup).\n- Tokens are captured automatically: Login requests store the JWT in the environment variable `accessToken` / `adminAccessToken`, which every protected request reads.\n- Refresh tokens are httpOnly cookies handled automatically by Postman\u0027s cookie jar.\n- Re-running: Register requests require a fresh email (a 409 duplicate will fail the test) — clear the email variables in the environment or use new ones to re-run. Product creation tolerates 409 and reuses the seeded product captured from the list endpoints.\n\n## Auth model\n- Register/login → access JWT (Bearer). Refresh token delivered via httpOnly cookie on `/api/v1/auth`.\n- Admin endpoints require an ADMIN account. New admins are created by an existing admin via POST /users/register (there is no role-changing endpoint).\n- Customers can delete their own account via DELETE /me (hard delete; order history is detached and kept). Admin accounts cannot delete themselves.\n- Mock payment provider auto-marks orders PAID.",
+                 "description":  "Complete Postman collection for the Crumb \u0026 Co. e-commerce backend (Express v5 + Prisma).\n\n## Setup\n1. Start the server: `npm run dev` (defaults to http://localhost:4000).\n2. Seed the database: `npm run db:seed` (creates the admin `admin@crumbco.dev` / `Admin123!`, products).\n3. Import the environment `crumb-and-co.environment.json` and select it.\n\n## How to run\n- Run the whole collection in order (Auth → Me → Users → Categories → Products → Cart → Orders → Cleanup).\n- Tokens are captured automatically: Login requests store the JWT in the environment variable `accessToken` / `adminAccessToken`, which every protected request reads.\n- Refresh tokens are httpOnly cookies handled automatically by Postman\u0027s cookie jar.\n- Re-running: Register requests require a fresh email (a 409 duplicate will fail the test) — clear the email variables in the environment or use new ones to re-run. Product creation tolerates 409 and reuses the seeded product captured from the list endpoints.\n\n## Auth model\n- Register/login → access JWT (Bearer). Refresh token delivered via httpOnly cookie on `/api/v1/auth`.\n- Admin endpoints require an ADMIN account. New admins are created by an existing admin via POST /admins (there is no role-changing endpoint).\n- Customers can delete their own account via DELETE /me (hard delete; order history is detached and kept). Admin accounts cannot delete themselves.\n- Mock payment provider auto-marks orders PAID.",
                  "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
              },
     "variable":  [
@@ -828,7 +828,7 @@
                                                                          "type":  "text"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/v1/users/register",
+                                                      "url":  "{{baseUrl}}/api/v1/admins",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\n  \"email\": \"{{newAdminEmail}}\",\n  \"password\": \"{{newAdminPassword}}\",\n  \"name\": \"New Admin\"\n}",
@@ -856,7 +856,7 @@
                                   },
                                   {
                                       "name":  "Toggle User Active",
-                                      "description":  "Activates or deactivates the managed user. Role is never changed here — admins can only toggle isActive, and new admins come from POST /users/register.",
+                                      "description":  "Activates or deactivates the managed user. Role is never changed here — admins can only toggle isActive, and new admins come from POST /admins.",
                                       "request":  {
                                                       "method":  "PATCH",
                                                       "header":  [
