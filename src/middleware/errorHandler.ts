@@ -22,6 +22,16 @@ export const errorHandler = (err: unknown, req: Request, res: Response, _next: N
     });
   }
 
+  if (err instanceof SyntaxError && 'body' in err) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: ERROR_CODES.VALIDATION_ERROR,
+        message: 'Malformed JSON in request body',
+      },
+    });
+  }
+
   if (err instanceof ApiError) {
     return res.status(err.statusCode).json({
       success: false,
