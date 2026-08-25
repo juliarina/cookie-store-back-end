@@ -1062,7 +1062,7 @@
                                                       "url":  "{{baseUrl}}/api/v1/products",
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"name\": \"Chai Spice Cookie\",\n  \"slug\": \"chai-spice-cookie\",\n  \"description\": \"Warm chai spices in a chewy butter cookie.\",\n  \"price\": 4.25,\n  \"stock\": 50,\n  \"rating\": 4.8,\n  \"tag\": \"New\",\n  \"imageUrl\": \"https://example.com/chai.jpg\",\n}",
+                                                                   "raw":  "{\n  \"name\": \"Chai Spice Cookie\",\n  \"slug\": \"chai-spice-cookie\",\n  \"description\": \"Warm chai spices in a chewy butter cookie.\",\n  \"price\": 4.25,\n  \"stock\": 50,\n  \"rating\": 4.8,\n  \"tag\": \"New\",\n  \"imageUrl\": \"https://example.com/chai.jpg\"\n}",
                                                                    "options":  {
                                                                                    "raw":  {
                                                                                                "language":  "json"
