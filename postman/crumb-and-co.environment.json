@@ -85,6 +85,24 @@
       "value": "",
       "type": "default",
       "enabled": true
+    },
+    {
+      "key": "customerRefreshToken",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "adminRefreshToken",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "managedRefreshToken",
+      "value": "",
+      "type": "default",
+      "enabled": true
     }
   ],
   "_postman_variable_scope": "environment",

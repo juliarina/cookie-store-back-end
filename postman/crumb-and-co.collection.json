@@ -1,7 +1,7 @@
 {
     "info":  {
                  "name":  "Crumb \u0026 Co. — Backend API",
-                 "description":  "Complete Postman collection for the Crumb \u0026 Co. e-commerce backend (Express v5 + Prisma).\n\n## Setup\n1. Start the server: `npm run dev` (defaults to http://localhost:4000).\n2. Seed the database: `npm run db:seed` (creates the admin `admin@crumbco.dev` / `Admin123!`, products).\n3. Import the environment `crumb-and-co.environment.json` and select it.\n\n## How to run\n- Run the whole collection in order (Auth → Me → Users → Categories → Products → Cart → Orders → Cleanup).\n- Tokens are captured automatically: Login requests store the JWT in the environment variable `accessToken` / `adminAccessToken`, which every protected request reads.\n- Refresh tokens are httpOnly cookies handled automatically by Postman\u0027s cookie jar.\n- Re-running: Register requests require a fresh email (a 409 duplicate will fail the test) — clear the email variables in the environment or use new ones to re-run. Product creation tolerates 409 and reuses the seeded product captured from the list endpoints.\n\n## Auth model\n- Register/login → access JWT (Bearer). Refresh token delivered via httpOnly cookie on `/api/v1/auth`.\n- Admin endpoints require an ADMIN account. New admins are created by an existing admin via POST /admins (there is no role-changing endpoint).\n- Customers can delete their own account via DELETE /me (hard delete; order history is detached and kept). Admin accounts cannot delete themselves.\n- Mock payment provider auto-marks orders PAID.",
+                 "description":  "Complete Postman collection for the Crumb \u0026 Co. e-commerce backend (Express v5 + Prisma).\n\n## Setup\n1. Start the server: `npm run dev` (defaults to http://localhost:4000).\n2. Seed the database: `npm run db:seed` (creates the admin `admin@crumbco.dev` / `Admin123!`, products).\n3. Import the environment `crumb-and-co.environment.json` and select it.\n\n## How to run\n- Run the whole collection in order (Auth → Me → Users → Categories → Products → Cart → Orders → Cleanup).\n- Tokens are captured automatically: Login requests store the JWT in the environment variable `accessToken` / `adminAccessToken`, which every protected request reads.\n- Refresh tokens are httpOnly cookies. Each login stores its refresh token in a per-account env var (`customerRefreshToken` / `adminRefreshToken` / `managedRefreshToken`). All accounts are logged out in the Cleanup folder, which also resets the token/user-id env vars.\n- Re-running: Register requests require a fresh email (a 409 duplicate will fail the test) — clear the email variables in the environment or use new ones to re-run. Product creation tolerates 409 and reuses the seeded product captured from the list endpoints.\n\n## Auth model\n- Register/login → access JWT (Bearer). Refresh token delivered via httpOnly cookie on `/api/v1/auth`.\n- Admin endpoints require an ADMIN account. New admins are created by an existing admin via POST /admins (there is no role-changing endpoint).\n- Customers can delete their own account via DELETE /me (hard delete; order history is detached and kept). Admin accounts cannot delete themselves.\n- Mock payment provider auto-marks orders PAID.",
                  "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
              },
     "variable":  [
@@ -40,12 +40,27 @@
                          "value":  "",
                          "type":  "string"
                      },
-                     {
-                         "key":  "orderId",
-                         "value":  "",
-                         "type":  "string"
-                     }
-                 ],
+{
+                          "key":  "orderId",
+                          "value":  "",
+                          "type":  "string"
+                      },
+                      {
+                          "key":  "customerRefreshToken",
+                          "value":  "",
+                          "type":  "string"
+                      },
+                      {
+                          "key":  "adminRefreshToken",
+                          "value":  "",
+                          "type":  "string"
+                      },
+                      {
+                          "key":  "managedRefreshToken",
+                          "value":  "",
+                          "type":  "string"
+                      }
+                  ],
     "item":  [
                  {
                      "name":  "Auth",
@@ -148,8 +163,11 @@
                                                         "script":  {
                                                                        "type":  "text/javascript",
                                                                        "exec":  [
-                                                                                    "pm.test(\u0027Status 200\u0027, () =\u003e pm.response.to.have.status(200));",
-                                                                                    "pm.environment.set(\u0027managedUserId\u0027, pm.response.json()?.data?.user?.id);"
+"pm.test(\u0027Status 200\u0027, () =\u003e pm.response.to.have.status(200));",
+                                                                                     "pm.environment.set(\u0027managedUserId\u0027, pm.response.json()?.data?.user?.id);",
+                                                                                     "const managedSc = pm.response.headers.get(\u0027set-cookie\u0027);",
+                                                                                     "const managedMatch = managedSc \u0026\u0026 managedSc.match(/refreshToken=([^;]+)/);",
+                                                                                     "pm.environment.set(\u0027managedRefreshToken\u0027, managedMatch ? managedMatch[1] : \u0027\u0027);"
                                                                                 ]
                                                                    }
                                                     }
@@ -187,7 +205,10 @@
                                                                                     "pm.test(\u0027success is true\u0027, () =\u003e pm.expect(json.success).to.eql(true));",
                                                                                     "pm.test(\u0027returns accessToken\u0027, () =\u003e pm.expect(json.data.accessToken).to.be.a(\u0027string\u0027));",
 "pm.environment.set(\u0027accessToken\u0027, json?.data?.accessToken);",
-                                                                                     "pm.environment.set(\u0027customerUserId\u0027, json?.data?.user?.id);"
+                                                                                      "pm.environment.set(\u0027customerUserId\u0027, json?.data?.user?.id);",
+                                                                                      "const customerSc = pm.response.headers.get(\u0027set-cookie\u0027);",
+                                                                                      "const customerMatch = customerSc \u0026\u0026 customerSc.match(/refreshToken=([^;]+)/);",
+                                                                                      "pm.environment.set(\u0027customerRefreshToken\u0027, customerMatch ? customerMatch[1] : \u0027\u0027);"
                                                                                 ]
                                                                    }
                                                     }
@@ -224,7 +245,10 @@
                                                                                     "pm.test(\u0027Status 200\u0027, () =\u003e pm.response.to.have.status(200));",
                                                                                     "const json = pm.response.json();",
                                                                                     "pm.test(\u0027returns accessToken\u0027, () =\u003e pm.expect(json.data.accessToken).to.be.a(\u0027string\u0027));",
-                                                                                    "pm.environment.set(\u0027adminAccessToken\u0027, json?.data?.accessToken);"
+                                                                                    "pm.environment.set(\u0027adminAccessToken\u0027, json?.data?.accessToken);",
+                                                                                     "const adminSc = pm.response.headers.get(\u0027set-cookie\u0027);",
+                                                                                     "const adminMatch = adminSc \u0026\u0026 adminSc.match(/refreshToken=([^;]+)/);",
+                                                                                     "pm.environment.set(\u0027adminRefreshToken\u0027, adminMatch ? adminMatch[1] : \u0027\u0027);"
                                                                                 ]
                                                                    }
                                                     }
@@ -249,74 +273,17 @@
                                                                                     "pm.test(\u0027Status 200\u0027, () =\u003e pm.response.to.have.status(200));",
                                                                                     "const json = pm.response.json();",
                                                                                     "pm.test(\u0027rotates accessToken\u0027, () =\u003e pm.expect(json.data.accessToken).to.be.a(\u0027string\u0027));",
-"pm.environment.set(\u0027accessToken\u0027, json?.data?.accessToken);"
+"pm.environment.set(\u0027adminAccessToken\u0027, json?.data?.accessToken);",
+                                                                                      "const refreshSc = pm.response.headers.get(\u0027set-cookie\u0027);",
+                                                                                     "const refreshMatch = refreshSc \u0026\u0026 refreshSc.match(/refreshToken=([^;]+)/);",
+                                                                                     "pm.environment.set(\u0027adminRefreshToken\u0027, refreshMatch ? refreshMatch[1] : \u0027\u0027);"
                                                                                 ]
                                                                    }
                                                     }
                                                 ]
                                   },
                                    {
-                                       "name":  "Logout",
-                                      "request":  {
-                                                      "method":  "POST",
-                                                      "header":  [
-
-                                                                 ],
-                                                      "url":  "{{baseUrl}}/api/v1/auth/logout"
-                                                  },
-                                      "event":  [
-                                                    {
-                                                        "listen":  "test",
-                                                        "script":  {
-                                                                       "type":  "text/javascript",
-                                                                       "exec":  [
-                                                                                    "pm.test(\u0027Status 204\u0027, () =\u003e pm.response.to.have.status(204));",
-                                                                                    "pm.environment.set(\u0027accessToken\u0027, \u0027\u0027);"
-                                                                                ]
-                                                                   }
-                                                    }
-                                                ]
-                                  },
-                                  {
-                                      "name":  "Login Customer",
-                                      "request":  {
-                                                      "method":  "POST",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Content-Type",
-                                                                         "value":  "application/json"
-                                                                     }
-                                                                 ],
-                                                      "url":  "{{baseUrl}}/api/v1/auth/login",
-                                                      "body":  {
-                                                                   "mode":  "raw",
-                                                                   "raw":  "{\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{customerPassword}}\"\n}",
-                                                                   "options":  {
-                                                                                   "raw":  {
-                                                                                               "language":  "json"
-                                                                                           }
-                                                                               }
-                                                               }
-                                                  },
-                                      "event":  [
-                                                    {
-                                                        "listen":  "test",
-                                                        "script":  {
-                                                                       "type":  "text/javascript",
-                                                                       "exec":  [
-                                                                                    "pm.test(\u0027Status 200\u0027, () =\u003e pm.response.to.have.status(200));",
-                                                                                    "const json = pm.response.json();",
-                                                                                    "pm.test(\u0027success is true\u0027, () =\u003e pm.expect(json.success).to.eql(true));",
-                                                                                    "pm.test(\u0027returns accessToken\u0027, () =\u003e pm.expect(json.data.accessToken).to.be.a(\u0027string\u0027));",
-"pm.environment.set(\u0027accessToken\u0027, json?.data?.accessToken);",
-                                                                                     "pm.environment.set(\u0027customerUserId\u0027, json?.data?.user?.id);"
-                                                                                ]
-                                                                   }
-                                                    }
-                                                ]
-                                  },
-                                  {
-                                      "name":  "Register — invalid payload (400)",
+                                        "name":  "Register — invalid payload (400)",
                                       "description":  "Shows the real validation error shape: `details` is an array of {field, message}.",
                                       "request":  {
                                                       "method":  "POST",
@@ -765,18 +732,20 @@
                                                                      }
                                                                  ]
                                                   },
-                                      "name":  "Delete Account - admin forbidden (403)",
-                                      "event":  [
-                                                    {
-                                                        "script":  {
-                                                                       "exec":  [
-                                                                                    "pm.test(\u0027Status 403\u0027, () =\u003e pm.response.to.have.status(403));"
-                                                                                ],
-                                                                       "type":  "text/javascript"
-                                                                   },
-                                                        "listen":  "test"
-                                                    }
-                                                ]
+"name":  "Delete Account - admin forbidden (403)",
+                                       "event":  [
+                                                     {
+                                                         "script":  {
+                                                                        "exec":  [
+                                                                                     "pm.test(\u0027Status 403\u0027, () =\u003e pm.response.to.have.status(403));",
+                                                                                     "pm.test(\u0027success is false\u0027, () =\u003e pm.expect(pm.response.json().success).to.eql(false));",
+                                                                                     "pm.test(\u0027code is FORBIDDEN\u0027, () =\u003e pm.expect(pm.response.json().error.code).to.eql(\u0027FORBIDDEN\u0027));"
+                                                                                 ],
+                                                                        "type":  "text/javascript"
+                                                                    },
+                                                         "listen":  "test"
+                                                     }
+                                                 ]
                                   }
                               ]
                  },
@@ -2010,9 +1979,102 @@
                               ]
                  },
                  {
-                     "name":  "Cleanup",
-                     "description":  "Deletes the product created during this run (soft delete).",
-                     "item":  [
+                      "name":  "Cleanup",
+                      "description":  "Deletes the product created during this run (soft delete), logs out all accounts and clears the token/user env vars.",
+                      "item":  [
+{
+                                        "name":  "Logout Customer",
+                                        "description":  "Replays the customer\u0027s captured refresh token as the `refreshToken` cookie so the server revokes that account\u0027s session.",
+                                        "event":  [
+                                                      {
+                                                          "listen":  "prerequest",
+                                                          "script":  {
+                                                                         "type":  "text/javascript",
+                                                                         "exec":  [
+                                                                                      "pm.cookies.jar().set(pm.environment.get(\u0027baseUrl\u0027) + \u0027/api/v1/auth/logout\u0027, \u0027refreshToken\u0027, pm.environment.get(\u0027customerRefreshToken\u0027));"
+                                                                                  ]
+                                                                     }
+                                                      },
+                                                      {
+                                                          "listen":  "test",
+                                                          "script":  {
+                                                                         "type":  "text/javascript",
+                                                                         "exec":  [
+                                                                                      "pm.test(\u0027Status 204\u0027, () =\u003e pm.response.to.have.status(204));"
+                                                                                  ]
+                                                                     }
+                                                      }
+                                                  ],
+                                        "request":  {
+                                                        "method":  "POST",
+                                                        "header":  [
+
+                                                                   ],
+                                                        "url":  "{{baseUrl}}/api/v1/auth/logout"
+                                                    }
+                                    },
+                                    {
+                                        "name":  "Logout Admin",
+                                        "description":  "Replays the admin\u0027s captured refresh token as the `refreshToken` cookie so the server revokes that account\u0027s session.",
+                                        "event":  [
+                                                      {
+                                                          "listen":  "prerequest",
+                                                          "script":  {
+                                                                         "type":  "text/javascript",
+                                                                         "exec":  [
+                                                                                      "pm.cookies.jar().set(pm.environment.get(\u0027baseUrl\u0027) + \u0027/api/v1/auth/logout\u0027, \u0027refreshToken\u0027, pm.environment.get(\u0027adminRefreshToken\u0027));"
+                                                                                  ]
+                                                                     }
+                                                      },
+                                                      {
+                                                          "listen":  "test",
+                                                          "script":  {
+                                                                         "type":  "text/javascript",
+                                                                         "exec":  [
+                                                                                      "pm.test(\u0027Status 204\u0027, () =\u003e pm.response.to.have.status(204));"
+                                                                                  ]
+                                                                     }
+                                                      }
+                                                  ],
+                                        "request":  {
+                                                        "method":  "POST",
+                                                        "header":  [
+
+                                                                   ],
+                                                        "url":  "{{baseUrl}}/api/v1/auth/logout"
+                                                    }
+                                    },
+                                    {
+                                        "name":  "Logout Managed User",
+                                        "description":  "Replays the managed user\u0027s captured refresh token as the `refreshToken` cookie so the server revokes that account\u0027s session.",
+                                        "event":  [
+                                                      {
+                                                          "listen":  "prerequest",
+                                                          "script":  {
+                                                                         "type":  "text/javascript",
+                                                                         "exec":  [
+                                                                                      "pm.cookies.jar().set(pm.environment.get(\u0027baseUrl\u0027) + \u0027/api/v1/auth/logout\u0027, \u0027refreshToken\u0027, pm.environment.get(\u0027managedRefreshToken\u0027));"
+                                                                                  ]
+                                                                     }
+                                                      },
+                                                      {
+                                                          "listen":  "test",
+                                                          "script":  {
+                                                                         "type":  "text/javascript",
+                                                                         "exec":  [
+                                                                                      "pm.test(\u0027Status 204\u0027, () =\u003e pm.response.to.have.status(204));"
+                                                                                  ]
+                                                                     }
+                                                      }
+                                                  ],
+                                        "request":  {
+                                                        "method":  "POST",
+                                                        "header":  [
+
+                                                                   ],
+                                                        "url":  "{{baseUrl}}/api/v1/auth/logout"
+                                                    }
+                                    },
                                   {
                                       "name":  "Delete Product",
                                       "description":  "Soft deletes `createdProductId` (sets isActive=false). Kept last so the cart/order flows still have stock.",
@@ -2087,15 +2149,39 @@
                                                         "script":  {
                                                                        "exec":  [
                                                                                     "pm.test(\u0027Status 204\u0027, () =\u003e pm.response.to.have.status(204));",
-                                                                                    "pm.test(\u0027account deleted\u0027, () =\u003e pm.expect(pm.response.body).to.eql(\u0027\u0027));"
-                                                                                ],
-                                                                       "type":  "text/javascript"
-                                                                   },
-                                                        "listen":  "test"
-                                                    }
-                                                ]
-                                  }
-                              ]
-                 }
+"pm.test(\u0027account deleted\u0027, () =\u003e pm.expect(pm.response.body).to.eql(\u0027\u0027));"
+                                                                                 ],
+                                                                        "type":  "text/javascript"
+                                                                    },
+                                                         "listen":  "test"
+                                                     }
+                                                 ]
+                                   },
+                                   {
+                                       "name":  "Clear Environment Variables",
+                                       "description":  "Resets every token/user-id env var captured during the run so a fresh run starts clean.",
+                                       "request":  {
+                                                       "method":  "GET",
+                                                       "header":  [
+
+                                                                  ],
+                                                       "url":  "{{baseUrl}}/api/v1/products?page=1\u0026limit=1"
+                                                   },
+                                       "event":  [
+                                                     {
+                                                         "listen":  "test",
+                                                         "script":  {
+                                                                        "type":  "text/javascript",
+                                                                        "exec":  [
+                                                                                     "const keys = [\u0027accessToken\u0027, \u0027adminAccessToken\u0027, \u0027customerUserId\u0027, \u0027managedUserId\u0027, \u0027productId\u0027, \u0027createdProductId\u0027, \u0027orderId\u0027, \u0027customerRefreshToken\u0027, \u0027adminRefreshToken\u0027, \u0027managedRefreshToken\u0027];",
+                                                                                     "keys.forEach((k) =\u003e pm.environment.set(k, \u0027\u0027));",
+                                                                                     "pm.test(\u0027Status 200\u0027, () =\u003e pm.response.to.have.status(200));"
+                                                                                 ]
+                                                                    }
+                                                     }
+                                                 ]
+                                   }
+                               ]
+                  }
              ]
 }
