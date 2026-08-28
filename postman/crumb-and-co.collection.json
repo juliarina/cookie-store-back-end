@@ -850,59 +850,83 @@
                                                                                }
                                                                }
                                                   },
-                                      "event":  [
-                                                    {
-                                                        "listen":  "test",
-                                                        "script":  {
-                                                                       "type":  "text/javascript",
-                                                                       "exec":  [
-                                                                                    "pm.test(\u0027Status 200\u0027, () =\u003e pm.response.to.have.status(200));",
-                                                                                    "const json = pm.response.json();",
-                                                                                    "pm.test(\u0027isActive updated\u0027, () =\u003e pm.expect(json.data.isActive).to.eql(false));"
-                                                                                ]
-                                                                   }
-                                                    }
-                                                ]
+"event":  [
+                                                     {
+                                                         "listen":  "prerequest",
+                                                         "script":  {
+                                                                        "type":  "text/javascript",
+                                                                        "exec":  [
+                                                                                     "const managedId = pm.environment.get(\u0027managedUserId\u0027);",
+                                                                                     "if (!managedId) throw new Error(\u0027managedUserId is empty — run \"Auth > Login Managed User\" first (the Cleanup folder clears it).\u0027);",
+                                                                                     "const adminToken = pm.environment.get(\u0027adminAccessToken\u0027);",
+                                                                                     "if (!adminToken) throw new Error(\u0027adminAccessToken is empty — run \"Auth > Login Admin\" first.\u0027);"
+                                                                                 ]
+                                                                    }
+                                                     },
+                                                     {
+                                                         "listen":  "test",
+                                                         "script":  {
+                                                                        "type":  "text/javascript",
+                                                                        "exec":  [
+                                                                                     "pm.test(\u0027Status 200\u0027, () =\u003e pm.response.to.have.status(200));",
+                                                                                     "const json = pm.response.json();",
+                                                                                     "pm.test(\u0027isActive updated\u0027, () =\u003e pm.expect(json.data.isActive).to.eql(false));"
+                                                                                 ]
+                                                                    }
+                                                     }
+                                                 ]
                                   },
                                   {
-                                      "name":  "Change Role — rejected (400)",
-                                      "description":  "Role changes are no longer supported. Sending `role` fails validation, so no customer can be promoted to admin.",
-                                      "request":  {
-                                                      "method":  "PATCH",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Content-Type",
-                                                                         "value":  "application/json"
-                                                                     },
-                                                                     {
-                                                                         "key":  "Authorization",
-                                                                         "value":  "Bearer {{adminAccessToken}}",
-                                                                         "type":  "text"
-                                                                     }
-                                                                 ],
-                                                      "url":  "{{baseUrl}}/api/v1/users/{{managedUserId}}",
-                                                      "body":  {
-                                                                   "mode":  "raw",
-                                                                   "raw":  "{\n  \"role\": \"ADMIN\",\n  \"isActive\": true\n}",
-                                                                   "options":  {
-                                                                                   "raw":  {
-                                                                                               "language":  "json"
-                                                                                           }
-                                                                               }
-                                                               }
-                                                  },
-                                      "event":  [
-                                                    {
-                                                        "listen":  "test",
-                                                        "script":  {
-                                                                       "type":  "text/javascript",
-                                                                       "exec":  [
-                                                                                    "pm.test(\u0027Status 400\u0027, () =\u003e pm.response.to.have.status(400));",
-                                                                                    "pm.test(\u0027code is VALIDATION_ERROR\u0027, () =\u003e pm.expect(pm.response.json().error.code).to.eql(\u0027VALIDATION_ERROR\u0027));"
-                                                                                ]
-                                                                   }
-                                                    }
-                                                ]
+"name":  "Change Role — rejected (400)",
+                                       "description":  "Role changes are no longer supported. Sending `role` fails validation, so no customer can be promoted to admin.",
+                                       "request":  {
+                                                       "method":  "PATCH",
+                                                       "header":  [
+                                                                      {
+                                                                          "key":  "Content-Type",
+                                                                          "value":  "application/json"
+                                                                      },
+                                                                      {
+                                                                          "key":  "Authorization",
+                                                                          "value":  "Bearer {{adminAccessToken}}",
+                                                                          "type":  "text"
+                                                                      }
+                                                                  ],
+                                                       "url":  "{{baseUrl}}/api/v1/users/{{managedUserId}}",
+                                                       "body":  {
+                                                                    "mode":  "raw",
+                                                                    "raw":  "{\n  \"role\": \"ADMIN\",\n  \"isActive\": true\n}",
+                                                                    "options":  {
+                                                                                    "raw":  {
+                                                                                                "language":  "json"
+                                                                                            }
+                                                                                }
+                                                                }
+                                                   },
+                                       "event":  [
+                                                     {
+                                                         "listen":  "prerequest",
+                                                         "script":  {
+                                                                        "type":  "text/javascript",
+                                                                        "exec":  [
+                                                                                     "const managedId = pm.environment.get(\u0027managedUserId\u0027);",
+                                                                                     "if (!managedId) throw new Error(\u0027managedUserId is empty — run \"Auth > Login Managed User\" first (the Cleanup folder clears it).\u0027);",
+                                                                                     "const adminToken = pm.environment.get(\u0027adminAccessToken\u0027);",
+                                                                                     "if (!adminToken) throw new Error(\u0027adminAccessToken is empty — run \"Auth > Login Admin\" first.\u0027);"
+                                                                                 ]
+                                                                    }
+                                                     },
+                                                     {
+                                                         "listen":  "test",
+                                                         "script":  {
+                                                                        "type":  "text/javascript",
+                                                                        "exec":  [
+                                                                                     "pm.test(\u0027Status 400\u0027, () =\u003e pm.response.to.have.status(400));",
+                                                                                     "pm.test(\u0027code is VALIDATION_ERROR\u0027, () =\u003e pm.expect(pm.response.json().error.code).to.eql(\u0027VALIDATION_ERROR\u0027));"
+                                                                                 ]
+                                                                    }
+                                                     }
+                                                 ]
                                   },
                                   {
                                       "name":  "List Users — customer token (403)",
