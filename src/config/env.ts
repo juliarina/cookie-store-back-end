@@ -22,6 +22,9 @@ const envSchema = z.object({
   PAYMENT_PROVIDER: z.enum(['mock', 'stripe']).default('mock'),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
+  AUTH_MAX_FAILED_ATTEMPTS: z.coerce.number().int().positive().default(5),
+  AUTH_FAIL_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
+  TRUST_PROXY: z.coerce.number().int().min(0).default(1),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'http', 'debug']).default('info'),
 });
 

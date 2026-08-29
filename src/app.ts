@@ -9,6 +9,7 @@ import { globalLimiter } from './middleware/rateLimit.js';
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './lib/logger.js';
+import { env } from './config/env.js';
 import { apiRouter } from './modules/index.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './docs/swagger.js';
@@ -16,7 +17,7 @@ import swaggerSpec from './docs/swagger.js';
 export const app = express();
 
 app.disable('x-powered-by');
-app.set('trust proxy', 1);
+app.set('trust proxy', env.TRUST_PROXY);
 
 app.use(helmet());
 app.use(corsMiddleware);

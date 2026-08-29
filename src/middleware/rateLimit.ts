@@ -28,9 +28,23 @@ export const authLimiter: RequestHandler = env.NODE_ENV === 'test'
       ...shared,
       windowMs: 60 * 1000,
       limit: 5,
+      skipSuccessfulRequests: true,
       message: {
         success: false,
         error: { code: 'RATE_LIMITED', message: 'Too many auth attempts, please try again later' },
+      },
+    });
+
+export const refreshLimiter: RequestHandler = env.NODE_ENV === 'test'
+  ? bypass
+  : rateLimit({
+      ...shared,
+      windowMs: 60 * 1000,
+      limit: 30,
+      skipSuccessfulRequests: true,
+      message: {
+        success: false,
+        error: { code: 'RATE_LIMITED', message: 'Too many refresh attempts, please try again later' },
       },
     });
 

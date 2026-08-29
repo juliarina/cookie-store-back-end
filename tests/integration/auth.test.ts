@@ -2,6 +2,7 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { app } from '../../src/app.js';
 import { prisma } from '../../src/lib/prisma.js';
+import { env } from '../../src/config/env.js';
 import { ADMIN_EMAIL, ADMIN_PASSWORD, createCustomer } from '../helpers.js';
 
 const base = '/api/v1';
@@ -53,6 +54,28 @@ describe('auth', () => {
       const res = await request(app).post(`${base}/auth/login`).send({ email, password: 'Wrong123!' });
       expect(res.status).toBe(401);
       expect(res.body.error.code).toBe('UNAUTHORIZED');
+    });
+
+    it('locks an account after repeated failed logins (429)', async () => {
+      const { email, password } = await createCustomer();
+      for (let i = 0; i < env.AUTH_MAX_FAILED_ATTEMPTS; i += 1) {
+        const res = await request(app).post(`${base}/auth/login`).send({ email, password: 'Wrong123!' });
+        expect(res.status).toBe(401);
+      }
+      const locked = await request(app).post(`${base}/auth/login`).send({ email, password });
+      expect(locked.status).toBe(429);
+      expect(locked.body.error.code).toBe('RATE_LIMITED');
+    });
+
+    it('resets the failure counter after a successful login', async () => {
+      const { email, password } = await createCustomer();
+      for (let i = 0; i < env.AUTH_MAX_FAILED_ATTEMPTS - 1; i += 1) {
+        await request(app).post(`${base}/auth/login`).send({ email, password: 'Wrong123!' });
+      }
+      const ok = await request(app).post(`${base}/auth/login`).send({ email, password });
+      expect(ok.status).toBe(200);
+      const again = await request(app).post(`${base}/auth/login`).send({ email, password });
+      expect(again.status).toBe(200);
     });
   });
 

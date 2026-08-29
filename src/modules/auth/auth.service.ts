@@ -2,6 +2,11 @@ import { prisma } from '../../lib/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { comparePassword, hashPassword } from '../../utils/password.js';
 import {
+  clearFailedLogins,
+  isLoginLocked,
+  recordFailedLogin,
+} from '../../lib/loginThrottle.js';
+import {
   generateAccessToken,
   generateRefreshToken,
   hashRefreshToken,
@@ -51,15 +56,25 @@ export interface LoginResult {
 }
 
 export const login = async (input: LoginInput): Promise<LoginResult> => {
+  const emailKey = input.email.trim().toLowerCase();
+
+  if (await isLoginLocked(emailKey)) {
+    throw ApiError.rateLimited('Too many failed login attempts. Please try again later.');
+  }
+
   const user = await prisma.user.findUnique({ where: { email: input.email } });
   if (!user || !user.isActive) {
+    await recordFailedLogin(emailKey);
     throw ApiError.unauthorized('Invalid email or password');
   }
 
   const valid = await comparePassword(input.password, user.passwordHash);
   if (!valid) {
+    await recordFailedLogin(emailKey);
     throw ApiError.unauthorized('Invalid email or password');
   }
+
+  await clearFailedLogins(emailKey);
 
   const refreshToken = generateRefreshToken();
   await prisma.user.update({

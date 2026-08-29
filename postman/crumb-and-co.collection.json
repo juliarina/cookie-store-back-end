@@ -455,7 +455,7 @@
                                   },
                                   {
                                       "name":  "Login — rate limited (429)",
-                                      "description":  "Fires 6 rapid login attempts in the pre-request script to exhaust the auth limiter (5/min), then this login should be blocked. Note: this test locks out /auth/login and /auth/refresh for about a minute, so it runs last.",
+                                      "description":  "Fires 6 rapid login attempts in the pre-request script to trip both layers: the per-IP auth limiter (5/min on /auth/login and /auth/refresh) and the per-account lockout (5 failed attempts in 15 min). The actual request should be blocked with 429. This locks out the customer email for 15 min, so it runs last.",
                                       "event":  [
                                                     {
                                                         "listen":  "prerequest",

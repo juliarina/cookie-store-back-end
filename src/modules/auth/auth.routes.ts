@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../../middleware/authenticate.js';
 import { authorize } from '../../middleware/authorize.js';
 import { validate } from '../../middleware/validate.js';
-import { authLimiter } from '../../middleware/rateLimit.js';
+import { authLimiter, refreshLimiter } from '../../middleware/rateLimit.js';
 import { ROLES } from '../../config/constants.js';
 import {
   loginController,
@@ -105,7 +105,7 @@ authRouter.post('/login', authLimiter, validate({ body: loginSchema }), loginCon
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-authRouter.post('/refresh', authLimiter, refreshController);
+authRouter.post('/refresh', refreshLimiter, refreshController);
 
 /**
  * @openapi
