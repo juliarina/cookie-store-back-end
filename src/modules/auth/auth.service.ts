@@ -11,7 +11,7 @@ import {
   generateRefreshToken,
   hashRefreshToken,
 } from './token.service.js';
-import type { LoginInput, RegisterInput, UpdateMeInput } from './auth.validation.js';
+import type { LoginInput, RegisterInput, UpdateMeInput, ChangePasswordInput } from './auth.validation.js';
 
 const USER_SELECT = {
   id: true,
@@ -193,7 +193,21 @@ export const updateMe = async (userId: string, input: UpdateMeInput): Promise<Sa
   const data: Record<string, unknown> = {};
   if (input.name !== undefined) data.name = input.name;
   if (input.email !== undefined) data.email = input.email;
-  if (input.password !== undefined) data.passwordHash = await hashPassword(input.password);
 
   return prisma.user.update({ where: { id: userId }, data, select: USER_SELECT });
+};
+
+export const changePassword = async (userId: string, input: ChangePasswordInput): Promise<SafeUser> => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw ApiError.notFound('User not found');
+
+  const valid = await comparePassword(input.currentPassword, user.passwordHash);
+  if (!valid) {
+    throw ApiError.badRequest('Current password is incorrect', 'VALIDATION_ERROR', [
+      { field: 'currentPassword', message: 'Current password is incorrect' },
+    ]);
+  }
+
+  const passwordHash = await hashPassword(input.newPassword);
+  return prisma.user.update({ where: { id: userId }, data: { passwordHash }, select: USER_SELECT });
 };

@@ -23,12 +23,17 @@ export const updateMeSchema = z
   .object({
     name: z.string().trim().min(1).max(100).optional(),
     email: emailSchema.optional(),
-    password: passwordSchema.optional(),
   })
-  .refine((data) => data.name !== undefined || data.email !== undefined || data.password !== undefined, {
+  .refine((data) => data.name !== undefined || data.email !== undefined, {
     message: 'Provide at least one field to update',
   });
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: passwordSchema,
+});
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type UpdateMeInput = z.infer<typeof updateMeSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

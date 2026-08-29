@@ -10,8 +10,13 @@ import {
   refreshController,
   registerController,
 } from './auth.controller.js';
-import { loginSchema, registerSchema, updateMeSchema } from './auth.validation.js';
-import { deleteMeController, getMeController, updateMeController } from './auth.controller.js';
+import { loginSchema, registerSchema, updateMeSchema, changePasswordSchema } from './auth.validation.js';
+import {
+  changePasswordController,
+  deleteMeController,
+  getMeController,
+  updateMeController,
+} from './auth.controller.js';
 
 export const authRouter = Router();
 
@@ -163,7 +168,6 @@ meRouter.get('/', getMeController);
  *             properties:
  *               name: { type: string, maxLength: 100 }
  *               email: { type: string, format: email }
- *               password: { type: string, minLength: 8 }
  *     responses:
  *       200:
  *         description: Updated user
@@ -182,6 +186,41 @@ meRouter.get('/', getMeController);
  *         $ref: '#/components/responses/Conflict'
  */
 meRouter.patch('/', validate({ body: updateMeSchema }), updateMeController);
+
+/**
+ * @openapi
+ * /me/password:
+ *   patch:
+ *     tags: [Me]
+ *     summary: Change your own password
+ *     description: Requires the current password. Returns 400 VALIDATION_ERROR with a `currentPassword` field error when it is wrong. Existing sessions are kept.
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [currentPassword, newPassword]
+ *             properties:
+ *               currentPassword: { type: string, minLength: 1 }
+ *               newPassword: { type: string, minLength: 8 }
+ *     responses:
+ *       200:
+ *         description: Updated user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, enum: [true] }
+ *                 data: { $ref: '#/components/schemas/User' }
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+meRouter.patch('/password', validate({ body: changePasswordSchema }), changePasswordController);
 
 /**
  * @openapi

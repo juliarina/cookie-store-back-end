@@ -4,7 +4,7 @@ import { sendSuccess } from '../../utils/ApiResponse.js';
 import { env } from '../../config/env.js';
 import { REFRESH_COOKIE, REFRESH_COOKIE_MAX_AGE_MS } from '../../config/constants.js';
 import * as authService from './auth.service.js';
-import type { LoginInput, RegisterInput, UpdateMeInput } from './auth.validation.js';
+import type { ChangePasswordInput, LoginInput, RegisterInput, UpdateMeInput } from './auth.validation.js';
 
 const setRefreshCookie = (res: Response, token: string): void => {
   res.cookie(REFRESH_COOKIE, token, {
@@ -52,6 +52,11 @@ export const getMeController = asyncHandler(async (req: Request, res: Response) 
 
 export const updateMeController = asyncHandler(async (req: Request, res: Response) => {
   const user = await authService.updateMe(req.user!.id, req.validatedBody as UpdateMeInput);
+  sendSuccess(res, { data: user });
+});
+
+export const changePasswordController = asyncHandler(async (req: Request, res: Response) => {
+  const user = await authService.changePassword(req.user!.id, req.validatedBody as ChangePasswordInput);
   sendSuccess(res, { data: user });
 });
 

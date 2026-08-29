@@ -3,6 +3,7 @@ import {
   registerSchema,
   loginSchema,
   updateMeSchema,
+  changePasswordSchema,
 } from '../../src/modules/auth/auth.validation.js';
 
 describe('auth validation', () => {
@@ -41,11 +42,41 @@ describe('auth validation', () => {
   describe('updateMeSchema', () => {
     it('accepts partial updates', () => {
       expect(updateMeSchema.safeParse({ name: 'New Name' }).success).toBe(true);
-      expect(updateMeSchema.safeParse({ password: 'Passw0rd!' }).success).toBe(true);
+      expect(updateMeSchema.safeParse({ email: 'new@example.com' }).success).toBe(true);
+    });
+
+    it('no longer accepts a password field', () => {
+      expect(updateMeSchema.safeParse({ password: 'Passw0rd!' }).success).toBe(false);
     });
 
     it('rejects an empty update', () => {
       expect(updateMeSchema.safeParse({}).success).toBe(false);
+    });
+  });
+
+  describe('changePasswordSchema', () => {
+    it('accepts a valid payload', () => {
+      const result = changePasswordSchema.safeParse({
+        currentPassword: 'OldPass1!',
+        newPassword: 'NewPass1!',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('requires currentPassword', () => {
+      expect(changePasswordSchema.safeParse({ newPassword: 'NewPass1!' }).success).toBe(false);
+    });
+
+    it('rejects weak new passwords', () => {
+      expect(
+        changePasswordSchema.safeParse({ currentPassword: 'OldPass1!', newPassword: 'short' }).success
+      ).toBe(false);
+      expect(
+        changePasswordSchema.safeParse({ currentPassword: 'OldPass1!', newPassword: 'allletters' }).success
+      ).toBe(false);
+      expect(
+        changePasswordSchema.safeParse({ currentPassword: 'OldPass1!', newPassword: '12345678' }).success
+      ).toBe(false);
     });
   });
 });

@@ -157,6 +157,58 @@ describe('auth', () => {
     });
   });
 
+  describe('PATCH /me/password', () => {
+    it('changes the password when the current password is correct', async () => {
+      const { email, password } = await createCustomer();
+      const login = await request(app).post(`${base}/auth/login`).send({ email, password });
+      const token = login.body.data.accessToken;
+
+      const res = await request(app)
+        .patch(`${base}/me/password`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ currentPassword: password, newPassword: 'Changed1!' });
+      expect(res.status).toBe(200);
+
+      const oldLogin = await request(app).post(`${base}/auth/login`).send({ email, password });
+      expect(oldLogin.status).toBe(401);
+
+      const newLogin = await request(app).post(`${base}/auth/login`).send({ email, password: 'Changed1!' });
+      expect(newLogin.status).toBe(200);
+    });
+
+    it('rejects a wrong current password with 400 VALIDATION_ERROR', async () => {
+      const { email, password } = await createCustomer();
+      const login = await request(app).post(`${base}/auth/login`).send({ email, password });
+
+      const res = await request(app)
+        .patch(`${base}/me/password`)
+        .set('Authorization', `Bearer ${login.body.data.accessToken}`)
+        .send({ currentPassword: 'Wrong123!', newPassword: 'Changed1!' });
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+      expect(res.body.error.details[0].field).toBe('currentPassword');
+    });
+
+    it('rejects a weak new password with 400', async () => {
+      const { email, password } = await createCustomer();
+      const login = await request(app).post(`${base}/auth/login`).send({ email, password });
+
+      const res = await request(app)
+        .patch(`${base}/me/password`)
+        .set('Authorization', `Bearer ${login.body.data.accessToken}`)
+        .send({ currentPassword: password, newPassword: 'short' });
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('rejects unauthenticated access with 401', async () => {
+      const res = await request(app)
+        .patch(`${base}/me/password`)
+        .send({ currentPassword: 'OldPass1!', newPassword: 'Changed1!' });
+      expect(res.status).toBe(401);
+    });
+  });
+
   describe('DELETE /me', () => {
     it('deletes the customer account, cart, and reviews; detaches orders', async () => {
       const { email, password } = await createCustomer();
