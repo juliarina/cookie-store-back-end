@@ -1,7 +1,7 @@
 {
     "info":  {
                  "name":  "Crumb \u0026 Co. — Backend API",
-                 "description":  "Complete Postman collection for the Crumb \u0026 Co. e-commerce backend (Express v5 + Prisma).\n\n## Setup\n1. Start the server: `npm run dev` (defaults to http://localhost:4000).\n2. Seed the database: `npm run db:seed` (creates the admin `admin@crumbco.dev` / `Admin123!`, products).\n3. Import the environment `crumb-and-co.environment.json` and select it.\n\n## How to run\n- Run the whole collection in order (Auth → Me → Users → Categories → Products → Cart → Orders → Cleanup).\n- Tokens are captured automatically: Login requests store the JWT in the environment variable `accessToken` / `adminAccessToken`, which every protected request reads.\n- Refresh tokens are httpOnly cookies. Each login stores its refresh token in a per-account env var (`customerRefreshToken` / `adminRefreshToken` / `managedRefreshToken`). All accounts are logged out in the Cleanup folder, which also resets the token/user-id env vars.\n- Re-running: Register requests require a fresh email (a 409 duplicate will fail the test) — clear the email variables in the environment or use new ones to re-run. Product creation tolerates 409 and reuses the seeded product captured from the list endpoints.\n\n## Auth model\n- Register/login → access JWT (Bearer). Refresh token delivered via httpOnly cookie on `/api/v1/auth`.\n- Admin endpoints require an ADMIN account. New admins are created by an existing admin via POST /admins (there is no role-changing endpoint).\n- Customers can delete their own account via DELETE /me (hard delete; order history is detached and kept). Admin accounts cannot delete themselves.\n- Mock payment provider auto-marks orders PAID.",
+                 "description":  "Complete Postman collection for the Crumb \u0026 Co. e-commerce backend (Express v5 + Prisma).\n\n## Setup\n1. Start the server: `npm run dev` (defaults to http://localhost:4000).\n2. Seed the database: `npm run db:seed` (creates the admin `admin@crumbco.dev` / `Admin123!`, products).\n3. Import the environment `crumb-and-co.environment.json` and select it.\n\n## How to run\n- Run the whole collection in order (Auth → Me → Users → Categories → Products → Cart → Orders → Cleanup).\n- Tokens are captured automatically: Login requests store the JWT in the environment variable `accessToken` / `adminAccessToken`, which every protected request reads.\n- Refresh tokens are httpOnly cookies. Each login stores its refresh token in a per-account env var (`customerRefreshToken` / `adminRefreshToken` / `managedRefreshToken`). All accounts are logged out in the Cleanup folder, which also resets the token/user-id env vars.\n- Re-running: Register requests require a fresh email (a 409 duplicate will fail the test) — clear the email variables in the environment or use new ones to re-run. Create Product generates a fresh unique slug each run so it always succeeds; the following duplicate request reuses that slug to assert the 409 conflict.\n\n## Auth model\n- Register/login → access JWT (Bearer). Refresh token delivered via httpOnly cookie on `/api/v1/auth`.\n- Admin endpoints require an ADMIN account. New admins are created by an existing admin via POST /admins (there is no role-changing endpoint).\n- Customers can delete their own account via DELETE /me (hard delete; order history is detached and kept). Admin accounts cannot delete themselves.\n- Mock payment provider auto-marks orders PAID.",
                  "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
              },
     "variable":  [
@@ -35,11 +35,16 @@
                          "value":  "",
                          "type":  "string"
                      },
-                     {
-                         "key":  "createdProductId",
-                         "value":  "",
-                         "type":  "string"
-                     },
+{
+                          "key":  "createdProductId",
+                          "value":  "",
+                          "type":  "string"
+                      },
+                      {
+                          "key":  "createdProductSlug",
+                          "value":  "",
+                          "type":  "string"
+                      },
 {
                           "key":  "orderId",
                           "value":  "",
@@ -1120,49 +1125,98 @@
                                                                                 ]
                                                                    }
                                                     }
-                                                ]
-                                  },
-                                  {
-                                      "name":  "Create Product",
-                                      "request":  {
-                                                      "method":  "POST",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Content-Type",
-                                                                         "value":  "application/json"
-                                                                     },
-                                                                     {
-                                                                         "key":  "Authorization",
-                                                                         "value":  "Bearer {{adminAccessToken}}",
-                                                                         "type":  "text"
-                                                                     }
-                                                                 ],
-                                                      "url":  "{{baseUrl}}/api/v1/products",
-                                                      "body":  {
-                                                                   "mode":  "raw",
-                                                                   "raw":  "{\n  \"name\": \"Chai Spice Cookie\",\n  \"slug\": \"chai-spice-cookie\",\n  \"description\": \"Warm chai spices in a chewy butter cookie.\",\n  \"price\": 4.25,\n  \"stock\": 50,\n  \"rating\": 4.8,\n  \"tag\": \"New\",\n  \"imageUrl\": \"https://example.com/chai.jpg\"\n}",
-                                                                   "options":  {
-                                                                                   "raw":  {
-                                                                                               "language":  "json"
-                                                                                           }
-                                                                               }
-                                                               }
-                                                  },
-                                      "event":  [
-                                                    {
-                                                        "listen":  "test",
-                                                        "script":  {
-                                                                       "type":  "text/javascript",
-                                                                       "exec":  [
-                                                                                    "pm.test(\u0027201 on first run (409 if slug exists)\u0027, () =\u003e pm.expect([201, 409]).to.include(pm.response.code));",
-                                                                                    "if (pm.response.code === 201) {",
-                                                                                    "  pm.environment.set(\u0027createdProductId\u0027, pm.response.json()?.data?.id);",
-                                                                                    "}"
-                                                                                ]
-                                                                   }
-                                                    }
-                                                ]
-                                  },
+]
+                                   },
+                                   {
+                                        "name":  "Create Product",
+                                       "description":  "Creates a product with a fresh unique slug each run, so it always succeeds (201). The next request reuses that slug to assert the 409 conflict.",
+                                       "request":  {
+                                                       "method":  "POST",
+                                                       "header":  [
+                                                                      {
+                                                                          "key":  "Content-Type",
+                                                                          "value":  "application/json"
+                                                                      },
+                                                                      {
+                                                                          "key":  "Authorization",
+                                                                          "value":  "Bearer {{adminAccessToken}}",
+                                                                          "type":  "text"
+                                                                      }
+                                                                  ],
+                                                       "url":  "{{baseUrl}}/api/v1/products",
+                                                       "body":  {
+                                                                    "mode":  "raw",
+                                                                    "raw":  "{\n  \"name\": \"Chai Spice Cookie\",\n  \"slug\": \"{{createdProductSlug}}\",\n  \"description\": \"Warm chai spices in a chewy butter cookie.\",\n  \"price\": 4.25,\n  \"stock\": 50,\n  \"rating\": 4.8,\n  \"tag\": \"New\",\n  \"imageUrl\": \"https://example.com/chai.jpg\"\n}",
+                                                                    "options":  {
+                                                                                    "raw":  {
+                                                                                                "language":  "json"
+                                                                                            }
+                                                                                }
+                                                                }
+                                                   },
+                                       "event":  [
+                                                     {
+                                                         "listen":  "prerequest",
+                                                         "script":  {
+                                                                        "type":  "text/javascript",
+                                                                        "exec":  [
+                                                                                     "pm.environment.set(\u0027createdProductSlug\u0027, \u0027chai-spice-\u0027 + Date.now());"
+                                                                                 ]
+                                                                    }
+                                                     },
+                                                     {
+                                                         "listen":  "test",
+                                                         "script":  {
+                                                                        "type":  "text/javascript",
+                                                                        "exec":  [
+                                                                                     "pm.test(\u0027Status 201\u0027, () =\u003e pm.response.to.have.status(201));",
+                                                                                     "pm.environment.set(\u0027createdProductId\u0027, pm.response.json()?.data?.id);"
+                                                                                 ]
+                                                                    }
+                                                     }
+                                                 ]
+                                   },
+                                   {
+                                       "name":  "Create Product — duplicate slug (409)",
+                                       "description":  "Reuses the slug created by the previous request, so the unique slug constraint returns 409 CONFLICT.",
+                                       "request":  {
+                                                       "method":  "POST",
+                                                       "header":  [
+                                                                      {
+                                                                          "key":  "Content-Type",
+                                                                          "value":  "application/json"
+                                                                      },
+                                                                      {
+                                                                          "key":  "Authorization",
+                                                                          "value":  "Bearer {{adminAccessToken}}",
+                                                                          "type":  "text"
+                                                                      }
+                                                                  ],
+                                                       "url":  "{{baseUrl}}/api/v1/products",
+                                                       "body":  {
+                                                                    "mode":  "raw",
+                                                                    "raw":  "{\n  \"name\": \"Chai Spice Cookie\",\n  \"slug\": \"{{createdProductSlug}}\",\n  \"description\": \"Duplicate product\",\n  \"price\": 4.25\n}",
+                                                                    "options":  {
+                                                                                    "raw":  {
+                                                                                                "language":  "json"
+                                                                                            }
+                                                                                }
+                                                                }
+                                                   },
+                                       "event":  [
+                                                     {
+                                                         "listen":  "test",
+                                                         "script":  {
+                                                                        "type":  "text/javascript",
+                                                                        "exec":  [
+                                                                                     "pm.test(\u0027Status 409\u0027, () =\u003e pm.response.to.have.status(409));",
+                                                                                     "pm.test(\u0027success is false\u0027, () =\u003e pm.expect(pm.response.json().success).to.eql(false));",
+                                                                                     "pm.test(\u0027code is CONFLICT\u0027, () =\u003e pm.expect(pm.response.json().error.code).to.eql(\u0027CONFLICT\u0027));"
+                                                                                 ]
+                                                                    }
+                                                     }
+                                                 ]
+                                   },
                                   {
                                       "name":  "Update Product",
                                       "description":  "Updates the product created above (requires `createdProductId`).",
@@ -2282,7 +2336,7 @@
                                                          "script":  {
                                                                         "type":  "text/javascript",
                                                                         "exec":  [
-                                                                                     "const keys = [\u0027accessToken\u0027, \u0027adminAccessToken\u0027, \u0027customerUserId\u0027, \u0027managedUserId\u0027, \u0027productId\u0027, \u0027createdProductId\u0027, \u0027orderId\u0027, \u0027customerRefreshToken\u0027, \u0027adminRefreshToken\u0027, \u0027managedRefreshToken\u0027];",
+                                                                                     "const keys = [\u0027accessToken\u0027, \u0027adminAccessToken\u0027, \u0027customerUserId\u0027, \u0027managedUserId\u0027, \u0027productId\u0027, \u0027createdProductId\u0027, \u0027createdProductSlug\u0027, \u0027orderId\u0027, \u0027customerRefreshToken\u0027, \u0027adminRefreshToken\u0027, \u0027managedRefreshToken\u0027];",
                                                                                      "keys.forEach((k) =\u003e pm.environment.set(k, \u0027\u0027));",
                                                                                      "pm.test(\u0027Status 200\u0027, () =\u003e pm.response.to.have.status(200));"
                                                                                  ]
