@@ -2311,7 +2311,7 @@
                                                     {
                                                         "script":  {
                                                                        "exec":  [
-                                                                                    "pm.test(\u0027Status 204\u0027, () =\u003e pm.response.to.have.status(204));",
+"pm.test(\u0027Status 204\u0027, () =\u003e pm.response.to.have.status(204));",
 "pm.test(\u0027account deleted\u0027, () =\u003e pm.expect(pm.response.body).to.eql(\u0027\u0027));"
                                                                                  ],
                                                                         "type":  "text/javascript"
@@ -2319,9 +2319,35 @@
                                                          "listen":  "test"
                                                      }
                                                  ]
-                                   },
-                                   {
-                                       "name":  "Clear Environment Variables",
+                                    },
+                                    {
+                                        "name":  "Delete Managed User",
+                                        "description":  "Deletes the managed user account created during this run (admin-only). Keeps the DB clean so a fresh run can register it again.",
+                                        "request":  {
+                                                        "method":  "DELETE",
+                                                        "header":  [
+                                                                       {
+                                                                           "key":  "Authorization",
+                                                                           "value":  "Bearer {{adminAccessToken}}",
+                                                                           "type":  "text"
+                                                                       }
+                                                                   ],
+                                                        "url":  "{{baseUrl}}/api/v1/users/{{managedUserId}}"
+                                                    },
+                                        "event":  [
+                                                      {
+                                                          "listen":  "test",
+                                                          "script":  {
+                                                                         "type":  "text/javascript",
+                                                                         "exec":  [
+                                                                                      "pm.test(\u0027Status 204\u0027, () =\u003e pm.response.to.have.status(204));"
+                                                                                  ]
+                                                                     }
+                                                      }
+                                                  ]
+                                    },
+                                    {
+                                        "name":  "Clear Environment Variables",
                                        "description":  "Resets every token/user-id env var captured during the run so a fresh run starts clean.",
                                        "request":  {
                                                        "method":  "GET",

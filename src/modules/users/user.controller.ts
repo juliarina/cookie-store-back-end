@@ -21,3 +21,10 @@ export const updateUserController = asyncHandler(async (req: Request, res: Respo
   );
   sendSuccess(res, { data: user });
 });
+
+export const deleteUserController = asyncHandler(async (req: Request, res: Response) => {
+  const actorId = req.user!.id;
+  const { id } = req.validatedParams as { id: string };
+  await userService.deleteUser(actorId, id);
+  res.status(204).end();
+});

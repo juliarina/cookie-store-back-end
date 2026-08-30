@@ -377,5 +377,54 @@ describe('auth', () => {
       expect(unchanged?.role).toBe('CUSTOMER');
       expect(unchanged?.isActive).toBe(true);
     });
+
+    it('deletes a customer via DELETE /users/:id', async () => {
+      const token = await adminLogin();
+      const { email, user } = await createCustomer();
+
+      const res = await request(app)
+        .delete(`${base}/users/${user.id}`)
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(204);
+
+      const login = await request(app).post(`${base}/auth/login`).send({ email, password: 'Passw0rd!' });
+      expect(login.status).toBe(401);
+    });
+
+    it('rejects deleting another admin with 403', async () => {
+      const adminLoginRes = await request(app)
+        .post(`${base}/auth/login`)
+        .send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+      const adminId = adminLoginRes.body.data.user.id;
+
+      const res = await request(app)
+        .delete(`${base}/users/${adminId}`)
+        .set('Authorization', `Bearer ${adminLoginRes.body.data.accessToken}`);
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FORBIDDEN');
+    });
+
+    it('rejects admins deleting themselves with 403', async () => {
+      const adminLoginRes = await request(app)
+        .post(`${base}/auth/login`)
+        .send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+
+      const res = await request(app)
+        .delete(`${base}/users/${adminLoginRes.body.data.user.id}`)
+        .set('Authorization', `Bearer ${adminLoginRes.body.data.accessToken}`);
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FORBIDDEN');
+    });
+
+    it('rejects deleting a user by customers with 403', async () => {
+      const { user } = await createCustomer();
+      const login = await request(app).post(`${base}/auth/login`).send({ email: user.email, password: 'Passw0rd!' });
+
+      const res = await request(app)
+        .delete(`${base}/users/${user.id}`)
+        .set('Authorization', `Bearer ${login.body.data.accessToken}`);
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FORBIDDEN');
+    });
   });
 });

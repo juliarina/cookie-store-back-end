@@ -4,6 +4,7 @@ import { authorize } from '../../middleware/authorize.js';
 import { validate } from '../../middleware/validate.js';
 import { ROLES } from '../../config/constants.js';
 import {
+  deleteUserController,
   listUsersController,
   registerAdminController,
   updateUserController,
@@ -95,6 +96,28 @@ userRouter.patch(
   validate({ params: userParamsSchema, body: updateUserSchema }),
   updateUserController
 );
+
+/**
+ * @openapi
+ * /users/{id}:
+ *   delete:
+ *     tags: [Users]
+ *     summary: Delete a user (admin)
+ *     description: Hard-deletes a CUSTOMER account (cart, cart items, and reviews; order history is detached). Admins cannot delete themselves or other admins.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+ *     responses:
+ *       204:
+ *         description: User deleted
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+userRouter.delete('/:id', validate({ params: userParamsSchema }), deleteUserController);
 
 export const adminRouter = Router();
 

@@ -66,3 +66,19 @@ export const updateUser = async (id: string, input: UpdateUserInput) => {
 
   return prisma.user.update({ where: { id }, data: { isActive: input.isActive }, select: USER_SELECT });
 };
+
+export const deleteUser = async (actorId: string, targetId: string): Promise<void> => {
+  const target = await prisma.user.findUnique({ where: { id: targetId } });
+  if (!target) throw ApiError.notFound('User not found');
+
+  if (target.id === actorId) throw ApiError.forbidden('Admins cannot delete themselves');
+  if (target.role === 'ADMIN') throw ApiError.forbidden('Admins cannot delete other admins');
+
+  await prisma.$transaction(async (tx) => {
+    await tx.cartItem.deleteMany({ where: { cart: { userId: targetId } } });
+    await tx.cart.deleteMany({ where: { userId: targetId } });
+    await tx.review.deleteMany({ where: { userId: targetId } });
+    await tx.order.updateMany({ where: { userId: targetId }, data: { userId: null } });
+    await tx.user.delete({ where: { id: targetId } });
+  });
+};
